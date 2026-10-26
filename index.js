@@ -7778,7 +7778,7 @@ function cdInjectModal() {
   /* Công tắc chèn trong ngăn kéo: sửa thiết lập thật */
   $('#cd-hd-bd').on('click', '.cd-hsw', function () {
     var i = parseInt($(this).attr('data-hsw'), 10);
-    var st = _cdDashCache;
+    var st = cdHomeDrawerSt; // dùng bộ số liệu của chính ngăn kéo đang mở: _cdDashCache bị xóa sau mỗi lần bấm nên đọc nó thì lần bấm thứ hai bị bỏ qua
     if (!st || !st.injectMods[i]) return;
     var nm = st.injectMods[i][0];
     var cur = !!st.injectMods[i][1];
@@ -7794,7 +7794,7 @@ function cdInjectModal() {
       patch.ritualInjects = ri;
     }
     cdSaveSettings(patch);
-    // Không xóa bộ đệm ở đây: lần bấm sau đọc _cdDashCache, nếu là null thì mọi công tắc khác bị bỏ qua cho tới khi mở lại ngăn kéo. Trạng thái được cập nhật tại chỗ bên dưới.
+    cdDashInvalidate();
     $(this).toggleClass('on');
     st.injectMods[i][1] = !cur;
     st.injectOn = st.injectMods.filter(function (x) { return x[1]; }).length;
@@ -9175,6 +9175,7 @@ async function cdHomeOpenDrawer(id) {
   document.getElementById('cd-hmask').classList.add('on');
   /* ★ FIX7: theo file gốc chỉ có một mức —— .on chính là mở đầy đủ (bên phải 466px toàn chiều cao / điện thoại toàn chiều rộng trồi lên), không có mức thu gọn peek */
   cdHomeDrawerId = id;
+  cdHomeDrawerSt = st;
 }
 function cdHomeCloseDrawer() {
   try {
@@ -9184,6 +9185,7 @@ function cdHomeCloseDrawer() {
   cdHomeDrawerId = null;
 }
 let cdHomeDrawerId = null;
+let cdHomeDrawerSt = null;
 
 /* ---------------- Tìm kiếm toàn cục phía trên (truy xuất thật) ---------------- */
 async function cdHomeSearch(q) {
