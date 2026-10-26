@@ -7794,7 +7794,7 @@ function cdInjectModal() {
       patch.ritualInjects = ri;
     }
     cdSaveSettings(patch);
-    cdDashInvalidate();
+    // Không xóa bộ đệm ở đây: lần bấm sau đọc _cdDashCache, nếu là null thì mọi công tắc khác bị bỏ qua cho tới khi mở lại ngăn kéo. Trạng thái được cập nhật tại chỗ bên dưới.
     $(this).toggleClass('on');
     st.injectMods[i][1] = !cur;
     st.injectOn = st.injectMods.filter(function (x) { return x[1]; }).length;
