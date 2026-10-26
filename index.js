@@ -356,7 +356,7 @@ Yêu cầu định dạng đầu ra bắt buộc:
 - 【Tăng liều truyện cười nhạt】: truyện cười nhạt, chơi chữ đồng âm, meme vô tri phải nhiều —— bất thình lình một câu hài lạnh khiến người ta không cười nổi ("Màn này à, màn này là...", "Bạn đang chơi đấy à", "Kể cái chuyện cười nhạt đừng vội", "Cốt truyện này còn nhạt hơn chuyện cười của tui"), lạnh mà vẫn hợp cảnh.
 
 ★Quy tắc đạn mạc tục (bắt buộc tuân thủ):
-- Độ tục kéo kịch trần, phong cách P站 (Pixiv).
+- Độ tục kéo kịch trần, phong cách Pixiv.
 - 【Đối tượng tưởng tượng chỉ nhắm vào nhân vật chính {{user}}】: dục vọng và tưởng tượng của đạn mạc tục【chỉ hướng về nhân vật chính {{user}}】, xoay quanh cơ thể, khí chất, thần thái, giọng nói... của {{user}} mà bày tỏ sự hưng phấn, mê đắm, dâm đãng lộ liễu (như "Đôi chân này tui ngắm cả năm được, liếm màn hình luôn", "prprpr", "Muốn bị {{user}} đè xuống ghê", "Cái eo cái mông này tui xong rồi", "Mau bung cúc áo ra đi").
 - 【Cấm mở rộng phạm vi】: không thả đạn mạc tục nhắm vào bất kỳ nhân vật/nhân vật phụ/phản diện/người qua đường nào khác ngoài nhân vật chính {{user}}, đạn mạc tục luôn khóa chặt vào nhân vật chính {{user}}.
 - 【Mỗi người một gu/sở thích】: khẩu vị mỗi người khác nhau —— cuồng chân/mê eo/mê giọng/thích ngược/liếm cẩu dịu dàng...
@@ -549,7 +549,7 @@ const DEFAULT_SETTINGS = {
     },
     {
       id: 'danmaku', name: 'Đạn mạc', icon: 'danmaku', enabled: false,
-      variant: 'normal', position: 'chat', desc: 'Khán giả cà khịa trực tiếp · bản thường = mồm độc / bản 18+ = đạn mạc tục kiểu P站',
+      variant: 'normal', position: 'chat', desc: 'Khán giả cà khịa trực tiếp · bản thường = mồm độc / bản 18+ = đạn mạc tục kiểu Pixiv',
       texts: {
         normal: CD_RITUAL_DANMAKU_NORMAL,
         yellow: CD_RITUAL_DANMAKU_YELLOW,
@@ -596,13 +596,13 @@ const DEFAULT_SETTINGS = {
   liveTablePrompt   : `[Lệnh điền bảng]
 Hãy dựa vào đoạn cốt truyện vừa rồi, ở cuối câu trả lời dùng một khối thu gọn <details><summary>Bảng tình báo</summary> để bọc, bên trong xuất một thẻ <liwe>, trong thẻ ghi theo định dạng sau:
 
-Địa điểm: (địa điểm hiện tại, có thay đổi mới xuất)
+Địa điểm: (địa điểm hiện tại, chỉ xuất khi có thay đổi)
 Tên nhân vật: tên nhân vật cụ thể|Trạng thái:…|Y phục:…|Hảo cảm với người dùng:…|Ghi chú:…
-(mỗi nhân vật xuất hiện một dòng; các trường con phân cách bằng |, định dạng là "trường con:giá trị"; trường con của nhân vật đó có thay đổi mới xuất dòng đó, ghi đè cập nhật)
+(mỗi nhân vật xuất hiện một dòng; các trường con phân cách bằng |, định dạng là "trường con:giá trị"; trường con của nhân vật đó có thay đổi thì mới xuất dòng đó, ghi đè cập nhật)
 
-Sự việc đã trải qua: (những việc {{user}} đã trải qua, mỗi mục kèm thời gian địa điểm, như "Ngày thứ ba·Thành phố bị lãng quên: nội dung"; có trải nghiệm mới mới xuất)
-Vật phẩm sở hữu: (vật phẩm {{user}} mới nhận được, mỗi món một mục; có vật phẩm mới mới xuất)
-Nhiệm vụ: (nhiệm vụ mới hoặc cập nhật của {{user}}, từng mục một; có nhiệm vụ mới mới xuất)
+Sự việc đã trải qua: (những việc {{user}} đã trải qua, mỗi mục kèm thời gian địa điểm, như "Ngày thứ ba·Thành phố bị lãng quên: nội dung"; chỉ xuất khi có trải nghiệm mới)
+Vật phẩm sở hữu: (vật phẩm {{user}} mới nhận được, mỗi món một mục; chỉ xuất khi có vật phẩm mới)
+Nhiệm vụ: (nhiệm vụ mới hoặc cập nhật của {{user}}, từng mục một; chỉ xuất khi có nhiệm vụ mới)
 
 Quy tắc:
 0. Lý lịch (trải nghiệm/vật phẩm/nhiệm vụ) đều là của nhân vật chính {{user}}.
@@ -1620,7 +1620,7 @@ async function cdBuildArchivePrompt(windowFloors, data, _s, archiveFull) {
   const existingCustomTxt = customFields.map(f => {
     const arr = (existing.custom && Array.isArray(existing.custom[f.key])) ? existing.custom[f.key] : [];
     if (!arr.length) return '';
-    return `Đã biết${f.label}:\n` + arr.map(it => it.time ? `【${it.time}】${it.desc}` : it.desc).join('\n');
+    return `Đã biết ${f.label}:\n` + arr.map(it => it.time ? `【${it.time}】${it.desc}` : it.desc).join('\n');
   }).filter(Boolean).join('\n');
   // ★ Văn bản tầng đã qua lọc thẻ
   const tags = _s?.filterTags || [];
@@ -1672,7 +1672,7 @@ async function cdBuildArchivePrompt(windowFloors, data, _s, archiveFull) {
       const usr = [
         (archiveFull ? `Dưới đây là toàn bộ các tầng của cốt truyện (hãy tóm tắt đầy đủ toàn bộ đoạn cốt truyện):\n${scene}` : `Các tầng mới thêm lần này:\n${scene}`),
         '',
-        `Hãy${archiveFull ? 'xuất đầy đủ diễn biến của đoạn cốt truyện này từ lúc bắt đầu tới hiện tại' : 'phân tích diễn biến cốt truyện trong các tầng mới thêm'}, xuất ra: Tuyến chính, Tuyến phụ, Thay đổi trạng thái quan trọng, Việc chưa giải quyết${customOutputNames ? ', ' + customOutputNames : ''}.`,
+        `Hãy ${archiveFull ? 'xuất đầy đủ diễn biến của đoạn cốt truyện này từ lúc bắt đầu tới hiện tại' : 'phân tích diễn biến cốt truyện trong các tầng mới thêm'}, xuất ra: Tuyến chính, Tuyến phụ, Thay đổi trạng thái quan trọng, Việc chưa giải quyết ${customOutputNames ? ', ' + customOutputNames : ''}.`,
         archiveFull ? 'Đây là dựng lại toàn bộ, hãy xuất ghi đè tuyến chính và trạng thái hoàn chỉnh hiện tại, đừng giả định trước đây đã ghi rồi mà bỏ qua cốt truyện giai đoạn đầu.' : 'Có thể trích dẫn nội dung trong "các sự kiện liên quan truy xuất được" ở trên, nhưng đừng xuất lặp lại, chỉ cập nhật tăng dần.',
       ].join('\n');
       return [
@@ -1714,7 +1714,7 @@ async function cdBuildArchivePrompt(windowFloors, data, _s, archiveFull) {
     (archiveFull ? `Dưới đây là toàn bộ các tầng của cốt truyện (hãy tóm tắt đầy đủ toàn bộ đoạn cốt truyện):\n${scene}` : `Các tầng mới thêm lần này:\n${scene}`),
     '',
     (archiveFull
-      ? `Hãy xuất đầy đủ từ lúc bắt đầu tới hiện tại của đoạn cốt truyện này: Tuyến chính, Tuyến phụ, Thay đổi trạng thái quan trọng, Việc chưa giải quyết${customOutputNames ? ', ' + customOutputNames : ''}.`
+      ? `Hãy xuất đầy đủ từ lúc bắt đầu tới hiện tại của đoạn cốt truyện này: Tuyến chính, Tuyến phụ, Thay đổi trạng thái quan trọng, Việc chưa giải quyết ${customOutputNames ? ', ' + customOutputNames : ''}.`
       : [
           'Hãy xuất hồ sơ cốt truyện (chế độ tăng dần thường), và tuân thủ nghiêm ngặt các luật thép sau:',
           '1. Bắt buộc xuất đầy đủ bốn trường cốt lõi【Tuyến chính】【Tuyến phụ】【Thay đổi trạng thái quan trọng】【Việc chưa giải quyết】, thứ tự cố định là Tuyến chính → Tuyến phụ → Thay đổi trạng thái quan trọng → Việc chưa giải quyết; dù lần này không có nội dung tương ứng, cũng phải xuất một dòng "Không" dưới trường tương ứng, tuyệt đối không cho phép thiếu hoặc bỏ qua bốn trường cốt lõi này.',
@@ -2030,7 +2030,7 @@ function cdAutoCompressShouldTrigger(data, s) {
     const lastSize = data._lastCompressSize || 0;
     const inc = size - lastSize;
     if (inc >= sizeTh) {
-      cdAddLog('info', `Kích hoạt tự động nén [số chữ]: hiện tại${size} chữ, lần trước${lastSize} chữ, mới thêm${inc} chữ, ngưỡng${sizeTh}`);
+      cdAddLog('info', `Kích hoạt tự động nén [số chữ]: hiện tại ${size} chữ, lần trước ${lastSize} chữ, mới thêm ${inc} chữ, ngưỡng ${sizeTh}`);
       return true;
     }
     return false;
@@ -2040,7 +2040,7 @@ function cdAutoCompressShouldTrigger(data, s) {
   const threshold = Math.max(5, s.autoCompressThreshold || 30);
   const lastCount = data._lastCompressEntryCount || 0;
   if (entryCount >= threshold && (entryCount - lastCount) >= Math.floor(threshold / 2)) {
-    cdAddLog('info', `Kích hoạt tự động nén [số mục]: hiện tại${entryCount} sự kiện, ngưỡng${threshold}`);
+    cdAddLog('info', `Kích hoạt tự động nén [số mục]: hiện tại ${entryCount} sự kiện, ngưỡng ${threshold}`);
     return true;
   }
   return false;
@@ -2184,7 +2184,7 @@ Hãy xuất nghiêm ngặt theo các đoạn sau, mỗi đoạn mở đầu bằ
     let replacedAny = false;
     for (const f of fields) {
       if (out[f] && typeof out[f] === 'string' && out[f].length) {
-        cdAddLog('info', `Tự động nén${labels[f]}: ${String(archive[f] || '').length}→${out[f].length} chữ`);
+        cdAddLog('info', `Tự động nén ${labels[f]}: ${String(archive[f] || '').length}→${out[f].length} chữ`);
         archive[f] = out[f];
         replacedAny = true;
       }
@@ -2214,7 +2214,7 @@ Hãy xuất nghiêm ngặt theo các đoạn sau, mỗi đoạn mở đầu bằ
       const t0 = excess[0].time || '';
       const t1 = excess[excess.length - 1].time || '';
       const range = (t0 && t1 && t0 !== t1) ? `${t0}~${t1}` : (t0 || t1);
-      const foldedTime = range ? `giai đoạn đầu${def.label}(${range})` : `giai đoạn đầu${def.label}`;
+      const foldedTime = range ? `giai đoạn đầu ${def.label}(${range})` : `giai đoạn đầu ${def.label}`;
       const foldedDesc = excess.map(it => it.time ? `${it.time}:${it.desc}` : it.desc).join('; ');
       if (foldedDesc) {
         const oldMain = archive.mainline || '';
@@ -2839,7 +2839,7 @@ async function cdSaveData(data) {
     if (_cdLastDiaryTotal >= 0 && _dc < _cdLastDiaryTotal) {
       const _gap = _cdLastDiaryTotal - _dc;
       if (typeof cdAddLog === 'function') cdAddLog('warn', '[Bảo vệ dữ liệu] Phát hiện số nhật ký giảm', {'Trước đó': _cdLastDiaryTotal, 'Hiện tại': _dc, 'Giảm': _gap});
-      if (typeof toastr !== 'undefined') toastr.warning(`[Nhật ký nhân vật] Phát hiện nhật ký giảm${_gap} mục. Nếu là xóa nhầm, có thể khôi phục thủ công trong “Quản lý → Sao lưu/Khôi phục dữ liệu”.`);
+      if (typeof toastr !== 'undefined') toastr.warning(`[Nhật ký nhân vật] Phát hiện nhật ký giảm ${_gap} mục. Nếu là xóa nhầm, có thể khôi phục thủ công trong “Quản lý → Sao lưu/Khôi phục dữ liệu”.`);
       _cdLastDiaryTotal = cdDiaryTotal(data);
     }
     const PLUGIN = PLUGIN_ID;
@@ -3116,7 +3116,7 @@ async function cdRollbackFrom(floor) {
     }
     cdAddLog('info', '[Hoàn tác tầng] Đã phát hiện xóa tầng, nhật ký được giữ lại (không còn tự động xóa, theo chế độ hồ sơ cốt truyện)', { floor, 'Nhân vật bị ảnh hưởng': affected });
     if (typeof toastr !== 'undefined' && affected.length) {
-      toastr.info(`[Nhật ký nhân vật] Phát hiện tầng${floor} bị xóa, nhật ký tương ứng đã được giữ lại để tránh mất. Nếu cần hủy bỏ có thể xử lý thủ công trong “Quản lý → Sao lưu/Khôi phục dữ liệu”.`);
+      toastr.info(`[Nhật ký nhân vật] Phát hiện tầng ${floor} bị xóa, nhật ký tương ứng đã được giữ lại để tránh mất. Nếu cần hủy bỏ có thể xử lý thủ công trong “Quản lý → Sao lưu/Khôi phục dữ liệu”.`);
     }
   } catch (e) {
     cdWarn('Nhắc nhở hoàn tác tầng thất bại', e);
@@ -3254,7 +3254,7 @@ async function cdBuildDiaryInjectionText() {
           for (const def of injCustomFields) {
             const arr = Array.isArray(injCustomMap[def.key]) ? injCustomMap[def.key] : [];
             if (!arr.length) continue;
-            arcParts.push(`tùy chỉnh${def.label}:${arr.map(it => it.time ? `【${it.time}】${it.desc}` : it.desc).join('\n')}`);
+            arcParts.push(`tùy chỉnh ${def.label}:${arr.map(it => it.time ? `【${it.time}】${it.desc}` : it.desc).join('\n')}`);
           }
           if (arcParts.length) {
             blocks.push('[Hồ sơ cốt truyện]');
@@ -3504,7 +3504,7 @@ function cdCustomSaveFields() {
     const oldCustom = Array.isArray(curS.customFields) ? curS.customFields : [];
     const ta = document.getElementById('cd-custom-fields-input');
     const raw = (ta && ta.value ? ta.value : '');
-    cdAddLog('info', '[Mục theo dõi] Nội dung ô nhập', { 'Độ dài': raw.length, ' - nội dung': raw.slice(0, 200) });
+    cdAddLog('info', '[Mục theo dõi] Nội dung ô nhập', { 'Độ dài': raw.length, 'Nội dung': raw.slice(0, 200) });
     const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
     const customFields = [];
     let autoIdx = 1;
@@ -3531,7 +3531,7 @@ function cdCustomSaveFields() {
     cdSaveSettings({ customFields });
     cdAddLog('info', '[Mục theo dõi] Đã ghi vào settings', { 'Số lượng': customFields.length, 'Trường': customFields.map(f => f.label) });
     if (customFields.length) {
-      toastr.success(`Đã lưu${customFields.length} mục theo dõi: đã chèn prompt · đã kết nối phân tích`);
+      toastr.success(`Đã lưu ${customFields.length} mục theo dõi: đã chèn prompt · đã kết nối phân tích`);
     } else {
       toastr.info('Đã xóa các mục theo dõi tùy chỉnh (không chèn vào prompt nữa)');
     }
@@ -3585,11 +3585,11 @@ function cdBuildLiveTableInjectText() {
       `[Lệnh quan trọng · Điền bảng] Đây là lệnh then chốt bắt buộc tuân thủ.`,
       `Hãy dựa vào đoạn cốt truyện vừa rồi, nhất định ở cuối câu trả lời dùng một khối thu gọn <details><summary>Bảng tình báo</summary> để bọc, bên trong xuất một thẻ <${tag}>, trong thẻ ghi nghiêm ngặt theo định dạng sau:`,
       ``,
-      `Địa điểm: (địa điểm hiện tại, có thay đổi mới xuất)`,
+      `Địa điểm: (địa điểm hiện tại, chỉ xuất khi có thay đổi)`,
       `Tên nhân vật: tên nhân vật cụ thể|${(() => { const f = Array.isArray(s.liveCharFields) && s.liveCharFields.length ? s.liveCharFields : ['Trạng thái', 'Y phục', 'Hảo cảm với người dùng', 'Ghi chú']; return f.map((x) => x + ':…').join('|'); })()}`,
-      `(mỗi nhân vật xuất hiện một dòng; các trường con phân cách bằng |, định dạng là "trường con:giá trị"; trường con của nhân vật đó có thay đổi mới xuất dòng đó, ghi đè cập nhật; các trường con sau trường tên nhân vật có thể bỏ thẳng những mục không thay đổi)`,
+      `(mỗi nhân vật xuất hiện một dòng; các trường con phân cách bằng |, định dạng là "trường con:giá trị"; trường con của nhân vật đó có thay đổi thì mới xuất dòng đó, ghi đè cập nhật; các trường con sau trường tên nhân vật có thể bỏ thẳng những mục không thay đổi)`,
       ``,
-       ...(() => { const f = Array.isArray(s.liveLowerFields) && s.liveLowerFields.length ? s.liveLowerFields : ['Sự việc đã trải qua', 'Vật phẩm sở hữu', 'Nhiệm vụ']; return f.map((x) => `${x}: (${x} của {{user}}, có nội dung mới mới xuất)`); })()
+       ...(() => { const f = Array.isArray(s.liveLowerFields) && s.liveLowerFields.length ? s.liveLowerFields : ['Sự việc đã trải qua', 'Vật phẩm sở hữu', 'Nhiệm vụ']; return f.map((x) => `${x}: (${x} của {{user}}, chỉ xuất khi có nội dung mới)`); })()
       ``,
       `Quy tắc:`,
       `1. Trích xuất trung thực từ cốt truyện, không bịa đặt; mục nào lần này không thay đổi/không liên quan thì đừng xuất.`,
@@ -4213,7 +4213,7 @@ const relMsgs     = cdBuildRelationPrompt(testFloors, data, s);
     cdApiComplete(relMsgs, s),
     cdApiComplete(archiveMsgs, s),
   ]);
-  cdAddLog('info', `Thử: tổng thời gian ba đường${Date.now() - startAll}ms`);
+  cdAddLog('info', `Thử: tổng thời gian ba đường ${Date.now() - startAll}ms`);
   
   // Kết quả nhật ký
   if (diaryRes.status === 'fulfilled') {
@@ -4372,8 +4372,8 @@ async function cdCheckAutoTrigger() {
     toastr.success(`Đã đủ điều kiện kích hoạt, gửi thêm tin nhắn là sẽ tự động viết nhật ký`);
   } else {
     const need = interval - aiCount;
-    cdAddLog('info', `Còn cần${need} tầng nữa mới kích hoạt tự động tóm tắt`);
-    toastr.info(`Còn cần${need} tầng thì kích hoạt tự động tóm tắt (hiện tại${aiCount}/${interval})`);
+    cdAddLog('info', `Còn cần ${need} tầng nữa mới kích hoạt tự động tóm tắt`);
+    toastr.info(`Còn cần ${need} tầng thì kích hoạt tự động tóm tắt (hiện tại ${aiCount}/${interval})`);
   }
   
   cdAddLog('info', '========== Kết thúc kiểm tra ==========');
@@ -5301,7 +5301,7 @@ function cdShowDedupeConfirm(removals) {
       <div style="padding:14px 16px 12px;border-bottom:0.5px solid #e8dcc8;display:flex;align-items:center;gap:8px;">
         <i class="fa-regular fa-broom" style="color:#b08a5c;"></i>
         <span style="font-weight:600;font-size: calc(0.8rem * var(--cd-fs, 1));color:#3c2f1f;">AI phát hiện các mục cần khử trùng</span>
-        <span style="margin-left:auto;font-size: calc(0.62rem * var(--cd-fs, 1));color:#8b7355;">Tổng${removals.length} mục nghi trùng</span>
+        <span style="margin-left:auto;font-size: calc(0.62rem * var(--cd-fs, 1));color:#8b7355;">Tổng ${removals.length} mục nghi trùng</span>
       </div>
       <div style="padding:8px 16px;overflow:auto;flex:1;">
 ${body || '<div style="color:#8b7355;font-size:calc(0.62rem*var(--cd-fs,1));padding:10px 0;">Không có mục nào</div>'}
@@ -5309,7 +5309,7 @@ ${body || '<div style="color:#8b7355;font-size:calc(0.62rem*var(--cd-fs,1));padd
       </div>
       <div style="padding:12px 16px;border-top:0.5px solid #e8dcc8;display:flex;gap:8px;justify-content:flex-end;">
         <button class="cd-btn-secondary cd-dedupe-cancel" style="padding:6px 16px;">Hủy</button>
-        <button class="cd-btn-primary cd-dedupe-ok" style="padding:6px 16px;"><i class="fa-regular fa-check"></i> Xác nhận dọn${removals.length} mục</button>
+        <button class="cd-btn-primary cd-dedupe-ok" style="padding:6px 16px;"><i class="fa-regular fa-check"></i> Xác nhận dọn ${removals.length} mục</button>
       </div>
 `);
     overlay.append(panel);
@@ -5741,7 +5741,7 @@ async function cdRunDiary({ manual = false, silent = false, extraFloors = null }
   if (!manual) {
     const _asDelay = Math.max(0, parseInt(s.autoSummaryDelay, 10) || 0);
     if (_asDelay > 0) {
-      cdAddLog('info', `Tự động tóm tắt sẽ chạy sau${_asDelay} giây… (lệch giờ để tránh giới hạn tốc độ API)`);
+      cdAddLog('info', `Tự động tóm tắt sẽ chạy sau ${_asDelay} giây… (lệch giờ để tránh giới hạn tốc độ API)`);
       await new Promise(r => setTimeout(r, _asDelay * 1000));
     }
   }
@@ -5770,10 +5770,10 @@ async function cdRunDiary({ manual = false, silent = false, extraFloors = null }
       calls.push({ name: 'Quan hệ', msgs: relMsgs });
     }
 
-    cdAddLog('api_req', `Gửi${calls.length} đường request API`, {'Định tuyến': calls.map(c => c.name)});
+    cdAddLog('api_req', `Gửi ${calls.length} đường request API`, {'Định tuyến': calls.map(c => c.name)});
     // ★ FIX11: khi số đường bất thường thì nêu tên rõ ràng, tránh người dùng không biết vì sao bị trừ phí hai lần
     if (calls.length > 1) {
-      cdAddLog('warn', `Lần tóm tắt này sẽ gửi${calls.length} request độc lập (${calls.map(c => c.name).join(' / ')}), mỗi đường bị trừ phí một lần.`
+      cdAddLog('warn', `Lần tóm tắt này sẽ gửi ${calls.length} request độc lập (${calls.map(c => c.name).join(' / ')}), mỗi đường bị trừ phí một lần.`
         + `Nếu chỉ muốn gửi một đường, hãy tắt các công tắc tính năng thừa ra (như “Quan hệ nhân vật”).`);
     }
 
@@ -5784,7 +5784,7 @@ async function cdRunDiary({ manual = false, silent = false, extraFloors = null }
       let lastErr = null;
       for (let attempt = 0; attempt <= maxRetry; attempt++) {
         const start = Date.now();
-        cdAddLog('api_req', `[${name}] Bắt đầu request (lần${attempt + 1}/${maxRetry + 1})`, {'Số tin nhắn': msgs.length});
+        cdAddLog('api_req', `[${name}] Bắt đầu request (lần ${attempt + 1}/${maxRetry + 1})`, {'Số tin nhắn': msgs.length});
         try {
           const res = await cdWithTimeout(cdApiComplete(msgs, s), 120000, name);
           const elapsed = Date.now() - start;
@@ -5806,13 +5806,13 @@ async function cdRunDiary({ manual = false, silent = false, extraFloors = null }
           const elapsed = Date.now() - start;
           lastErr = e;
           const still = attempt < maxRetry;
-          cdAddLog('warn', `[${name}] Request lần${attempt + 1} thất bại (${elapsed}ms): ${e && e.message ? e.message : e}` + (still ? `,${delayMs / 1000} giây sau thử lại` : ''));
+          cdAddLog('warn', `[${name}] Request lần ${attempt + 1} thất bại (${elapsed}ms): ${e && e.message ? e.message : e}` + (still ? `,${delayMs / 1000} giây sau thử lại` : ''));
           if (still && delayMs > 0) {
             await new Promise(r => setTimeout(r, delayMs));
           }
         }
       }
-      cdAddLog('error', `[${name}] Thử lại${maxRetry} lần vẫn thất bại:` + ((lastErr && lastErr.message) || 'Lỗi không xác định'));
+      cdAddLog('error', `[${name}] Thử lại ${maxRetry} lần vẫn thất bại:` + ((lastErr && lastErr.message) || 'Lỗi không xác định'));
       throw lastErr || new Error('Request thất bại');
     };
 
@@ -5828,7 +5828,7 @@ async function cdRunDiary({ manual = false, silent = false, extraFloors = null }
     let results = await Promise.race([_cdRunAll, _raceTimer]);
     if (_raceT) { clearTimeout(_raceT); _raceT = null; }
     if (!results) {
-      cdAddLog('warn', `[Hết thời gian] Đã chờ${Math.round(_budgetMs / 1000)}s mà vẫn chưa trả về hết, tiếp tục chờ kết quả thật (không vứt bỏ nữa)`);
+      cdAddLog('warn', `[Hết thời gian] Đã chờ ${Math.round(_budgetMs / 1000)}s mà vẫn chưa trả về hết, tiếp tục chờ kết quả thật (không vứt bỏ nữa)`);
       results = await _cdRunAll;
     }
     
@@ -6206,7 +6206,7 @@ if (arc.unresolved !== undefined) {
       if (s.autoHideEnabled) {
         try {
           await cdHideOldFloors(s.autoHideKeep || 5);
-          cdAddLog('info', `Tự động ẩn xong, giữ${s.autoHideKeep || 5} tầng mới nhất (gồm người dùng)`);
+          cdAddLog('info', `Tự động ẩn xong, giữ ${s.autoHideKeep || 5} tầng mới nhất (gồm người dùng)`);
         } catch (e) {
           cdLog('Tự động ẩn thất bại (không ảnh hưởng luồng chính):', e.message);
         }
@@ -6280,7 +6280,7 @@ if (arc.unresolved !== undefined) {
           const diaryCount = Object.keys(data.diaries || {}).length;
           const entryCount = Object.values(data.diaries || {}).reduce((s, l) => s + l.length, 0);
           const notifyParts = ['[Nhật ký nhân vật]'];
-          if (diaryOk) notifyParts.push(`Đã viết nhật ký cho${Object.keys(data.diaries).length} nhân vật`);
+          if (diaryOk) notifyParts.push(`Đã viết nhật ký cho ${Object.keys(data.diaries).length} nhân vật`);
           if (relOk) notifyParts.push('đã cập nhật quan hệ');
           if (archiveOk) notifyParts.push('đã cập nhật hồ sơ cốt truyện');
           const notifyText = notifyParts.join(' · ');
@@ -8646,7 +8646,7 @@ function cdRenderInject() {
           <div class="cd-rit-srow"><span class="cd-rit-sl">Vị trí</span><div class="cd-rit-seg">${posOpts.map(function (o) { return `<span class="cd-rit-opt ${(m.position || 'before') === o[0] ? 'on' : ''}" data-role="pos" data-val="${o[0]}">${o[1]}</span>`; }).join('')}</div></div>
         </div>`}
         <div class="cd-rit-row">
-          <span class="cd-rit-curr">${eH(curLabel(m))} · Vị trí${posLabel(m.position)}</span>
+          <span class="cd-rit-curr">${eH(curLabel(m))} · Vị trí ${posLabel(m.position)}</span>
           <span class="cd-rit-mini"><span data-role="toggle" style="cursor:pointer;">⟳ Mở</span><span data-role="edit" style="cursor:pointer;">✎ Sửa</span><span class="cd-rit-del" data-role="copy" style="cursor:pointer;">⤓ Sao chép</span><span class="cd-rit-del" data-role="del" style="cursor:pointer;">Xóa</span></span>
         </div>
         <div class="cd-rit-body">
@@ -8660,7 +8660,7 @@ function cdRenderInject() {
   }
 
   html += '<div class="cd-rit-ops-row"><div class="cd-rit-add" id="cd-rit-add">＋ Chép phù khế mới</div><div class="cd-rit-reset" id="cd-rit-reset">↺ Khôi phục mặc định</div></div>';
-  html += '<div class="cd-rit-note"><b>Xúc xắc vận mệnh · hai cấp</b>: bản đơn giản = quyết định thường ngày/cảm xúc/thuyết phục... mọi hành động đều có thể phán, mục tiêu vừa phải; bản khó = mỗi bước bắt buộc phán nghiêm ngặt, mục tiêu cao hơn, cái giá thất bại nặng hơn. Quá trình phán định của cả hai cấp đều được bọc trong khối thu gọn “Xúc xắc vận mệnh · Phán định”, chính văn chỉ hiển thị thanh thu gọn.<br><b>Thế giới luyện ngục · một cấp</b>: luật sinh tồn cấp địa ngục —— đâu đâu cũng làm khó, đâu đâu cũng là kẻ địch, từng bước là sinh tử, ai cũng hoài nghi, chinh phục và tình cảm cực khó, cấm thần thánh hóa nhân vật chính, trong tuyệt cảnh vẫn kiên cường suy nghĩ phản kháng; hợp với cảnh muốn đặt áp lực cực hạn lên nhân vật chính, có thể dùng chồng với Xúc xắc vận mệnh.<br><b>Động cơ hảo cảm · hai cấp</b>: bản nguyên gốc = toàn văn gốc; bản tinh gọn = nén phần thừa nhưng giữ đầy đủ chi tiết số liệu.<br><b>Vị trí</b>: mỗi mô-đun đặt riêng Đầu/Giữa hội thoại/Cuối; <b>＋Chép phù khế mới</b> có thể tự tạo bất kỳ quy tắc chèn nào.<br><b>Thanh trạng thái · hai cấp</b>: bản đầy đủ = bảng trạng thái RPG đầy đủ (chỉ số để tung xúc xắc); bản hảo cảm = bảng hảo cảm của nhân vật chính với người dùng, xuất ở dạng thu gọn.<br><b>Thế giới song song · một cấp</b>: sự kiện ở nơi khác ngoài tuyến chính cùng thời điểm, mặc định thu gọn.<br><b>Đạn mạc · hai cấp</b>: bản thường = khán giả cà khịa mồm độc; bản 18+ = đạn mạc tục kiểu P站 (tưởng tượng về bất kỳ nhân vật nào), mặc định thu gọn.<br><b>Phục bút · một cấp</b>: phục bút/tiền đề ẩn, mặc định thu gọn.<br><b>Diễn đàn · một cấp</b>: đẩy thuyền CP, drama, cà khịa + NPC chia sẻ đời mình, phong cách thớt huyền thoại, mặc định thu gọn.<br><b>Tạo giao diện front-end · một cấp</b>: dùng HTML cụ thể hóa giao diện/vật phẩm trong cốt truyện (chat điện thoại/thư từ/thẻ đạo cụ...), hiển thị trực tiếp không thu gọn.</div>';
+  html += '<div class="cd-rit-note"><b>Xúc xắc vận mệnh · hai cấp</b>: bản đơn giản = quyết định thường ngày/cảm xúc/thuyết phục... mọi hành động đều có thể phán, mục tiêu vừa phải; bản khó = mỗi bước bắt buộc phán nghiêm ngặt, mục tiêu cao hơn, cái giá thất bại nặng hơn. Quá trình phán định của cả hai cấp đều được bọc trong khối thu gọn “Xúc xắc vận mệnh · Phán định”, chính văn chỉ hiển thị thanh thu gọn.<br><b>Thế giới luyện ngục · một cấp</b>: luật sinh tồn cấp địa ngục —— đâu đâu cũng làm khó, đâu đâu cũng là kẻ địch, từng bước là sinh tử, ai cũng hoài nghi, chinh phục và tình cảm cực khó, cấm thần thánh hóa nhân vật chính, trong tuyệt cảnh vẫn kiên cường suy nghĩ phản kháng; hợp với cảnh muốn đặt áp lực cực hạn lên nhân vật chính, có thể dùng chồng với Xúc xắc vận mệnh.<br><b>Động cơ hảo cảm · hai cấp</b>: bản nguyên gốc = toàn văn gốc; bản tinh gọn = nén phần thừa nhưng giữ đầy đủ chi tiết số liệu.<br><b>Vị trí</b>: mỗi mô-đun đặt riêng Đầu/Giữa hội thoại/Cuối; <b>＋Chép phù khế mới</b> có thể tự tạo bất kỳ quy tắc chèn nào.<br><b>Thanh trạng thái · hai cấp</b>: bản đầy đủ = bảng trạng thái RPG đầy đủ (chỉ số để tung xúc xắc); bản hảo cảm = bảng hảo cảm của nhân vật chính với người dùng, xuất ở dạng thu gọn.<br><b>Thế giới song song · một cấp</b>: sự kiện ở nơi khác ngoài tuyến chính cùng thời điểm, mặc định thu gọn.<br><b>Đạn mạc · hai cấp</b>: bản thường = khán giả cà khịa mồm độc; bản 18+ = đạn mạc tục kiểu Pixiv (tưởng tượng về bất kỳ nhân vật nào), mặc định thu gọn.<br><b>Phục bút · một cấp</b>: phục bút/tiền đề ẩn, mặc định thu gọn.<br><b>Diễn đàn · một cấp</b>: đẩy thuyền CP, drama, cà khịa + NPC chia sẻ đời mình, phong cách thớt huyền thoại, mặc định thu gọn.<br><b>Tạo giao diện front-end · một cấp</b>: dùng HTML cụ thể hóa giao diện/vật phẩm trong cốt truyện (chat điện thoại/thư từ/thẻ đạo cụ...), hiển thị trực tiếp không thu gọn.</div>';
 
   $('#cd-content').html(html);
 
@@ -10052,7 +10052,7 @@ ${names.map(n => `<option value="${escapeAttr(n)}" ${n === filterChar ? 'selecte
         <span class="cd-card-meta">
           ${last.date ? `<span class="cd-card-date">${escapeHtml(last.date)}</span>` : ''}
           ${last.mood ? `<span class="cd-card-mood">${moodEmoji} ${escapeHtml(last.mood)}</span>` : ''}
-          <span class="cd-card-count">Tổng${list.length} bài${filterText ? ' (kết quả tìm kiếm)' : ''}</span>
+          <span class="cd-card-count">Tổng ${list.length} bài ${filterText ? ' (kết quả tìm kiếm)' : ''}</span>
         </span>
       </summary>
       <div class="cd-card-body">
@@ -10086,7 +10086,7 @@ ${names.map(n => `<option value="${escapeAttr(n)}" ${n === filterChar ? 'selecte
               </details>`;
             }).join('');
             if (__total.length > __shown.length) {
-              __html += `<button class="cd-load-more" data-name="${escapeAttr(name)}" title="Tải các nhật ký cũ hơn"><i class="fa-solid fa-arrow-up"></i> Xem cũ hơn${__total.length - __shown.length} bài</button>`;
+              __html += `<button class="cd-load-more" data-name="${escapeAttr(name)}" title="Tải các nhật ký cũ hơn"><i class="fa-solid fa-arrow-up"></i> Xem cũ hơn ${__total.length - __shown.length} bài</button>`;
             }
             return __html;
           })()}
@@ -10271,7 +10271,7 @@ function cdShowEntryEditor(name, idx, entry, data) {
   const overlay = $(`<div class="cd-editor-overlay" id="${editorId}">
     <div class="cd-editor-modal">
       <div class="cd-editor-header">
-        <span>Sửa nhật ký của${escapeHtml(name)}</span>
+        <span>Sửa nhật ký của ${escapeHtml(name)}</span>
         <button class="cd-editor-close"><i class="fa-regular fa-xmark"></i></button>
       </div>
       <div class="cd-editor-body">
@@ -10631,7 +10631,7 @@ async function cdRenderGraph() {
     else if (fav >= 70) { cls = 'cd-st-fav-high'; iconSvg = '<i class="fa-solid fa-heart" style="font-size:9px;"></i>'; }
     else if (fav >= 40) { cls = 'cd-st-fav-mid'; }
     else { cls = 'cd-st-fav-low'; }
-    return `<span class="cd-st-favpill ${cls}">${iconSvg} Hảo cảm${fav}</span>`;
+    return `<span class="cd-st-favpill ${cls}">${iconSvg} Hảo cảm ${fav}</span>`;
   };
 
   // ===== Bản đồ hành trình: địa điểm lấy từ trường “Địa điểm” do AI xuất trực tiếp (hồ sơ cốt truyện arc.locations, chuỗi thời gian kiểu thêm vào) =====
@@ -10747,7 +10747,7 @@ async function cdRenderGraph() {
             <g stroke="#8a6a3b" stroke-width="1.4" fill="none" opacity=".6"><path d="${path}" stroke-dasharray="5 4" stroke-linecap="round"/></g>
             <g fill="#a3804d" font-family="-apple-system,'Segoe UI',sans-serif" text-anchor="middle">${nodeHtml}</g>
           </svg>
-          <div class="cd-st-map-note"><span><i class="fa-solid fa-location-dot" style="font-size:10px;"></i> Vị trí hiện tại ·${escapeHtml(_curLoc || 'Không rõ')}</span><span>Đã đặt chân${locs.length} nơi</span></div>
+          <div class="cd-st-map-note"><span><i class="fa-solid fa-location-dot" style="font-size:10px;"></i> Vị trí hiện tại ·${escapeHtml(_curLoc || 'Không rõ')}</span><span>Đã đặt chân ${locs.length} nơi</span></div>
         </div>
       </div>`;
   }
@@ -10795,7 +10795,7 @@ ${envKeys.map(k => env[k] && String(env[k]).trim() ? `<div class="cd-st-env-item
   const itemsLogHtml = _logItems.length ? _logItems.slice(-25).reverse().map(function(it,li){ var _d=String(it.desc||''); var _ridx=_logItems.length-1-li; return '<div class="cd-st-log-row"><label class="cd-st-cb-wrap"><input type="checkbox" class="cd-st-cb" data-kind="itemlog" data-idx="'+_ridx+'"></label>'+(it.time?'<span class="t">'+escapeHtml(it.time)+'</span>':'')+'<span class="d">'+escapeHtml(_d)+'</span></div>'; }).join('') : '';
   const itemsCard = (_holdItems.length || _logItems.length) ? `
     <details class="cd-st-items">
-      <summary class="cd-st-items-head"><i class="fa-solid fa-box-open" style="font-size:13px;"></i> Vật phẩm <span class="hint">Đang sở hữu${_holdItems.length} món · Nhật ký biến động${_logItems.length} mục</span></summary>
+      <summary class="cd-st-items-head"><i class="fa-solid fa-box-open" style="font-size:13px;"></i> Vật phẩm <span class="hint">Đang sở hữu ${_holdItems.length} món · Nhật ký biến động ${_logItems.length} mục</span></summary>
       <div class="cd-st-items-body">
         <div class="cd-st-items-sub">Đang sở hữu</div>
         <div class="cd-st-items-list">${itemsHoldHtml || '<div class="cd-st-items-empty">(Chưa sở hữu vật gì)</div>'}</div>
@@ -10810,7 +10810,7 @@ ${envKeys.map(k => env[k] && String(env[k]).trim() ? `<div class="cd-st-env-item
   const _taskItemsFiltered = _taskItems.filter(function(t){ return !/^(?:地点|Địa điểm)[：:]/.test(String((t&&t.line)||'')) && !/^钱财追踪|^当前金额|^钱财变动|^Theo dõi tiền bạc|^Số tiền hiện tại|^Biến động tiền bạc/.test(String((t&&t.line)||'')); });
   const tasksCard = _taskItemsFiltered.length ? `
     <details class="cd-st-tasks" open>
-      <summary class="cd-st-tasks-head"><i class="fa-solid fa-list-check" style="font-size:13px;"></i> Nhiệm vụ <span class="hint">Đang tiến hành${_taskItemsFiltered.length} mục</span></summary>
+      <summary class="cd-st-tasks-head"><i class="fa-solid fa-list-check" style="font-size:13px;"></i> Nhiệm vụ <span class="hint">Đang tiến hành ${_taskItemsFiltered.length} mục</span></summary>
       <div class="cd-st-tasks-body">${tasksBodyHtml}</div>
     </details>` : '';
   
@@ -11502,7 +11502,7 @@ try {
   $('#cd-content').off('click', '#cd-tl-del-selected').on('click', '#cd-tl-del-selected', async function () {
     const sel = $('#cd-content .cd-tl-cb:checked');
     if (!sel.length) { if (typeof toastr !== 'undefined') toastr.warning('Hãy đánh dấu các mục dòng thời gian cần xóa trước'); return; }
-    if (typeof confirm === 'function' && !confirm(`Xác nhận xóa${sel.length} mục dòng thời gian đã chọn? Chúng sẽ bị gỡ khỏi hồ sơ cốt truyện.`)) return;
+    if (typeof confirm === 'function' && !confirm(`Xác nhận xóa ${sel.length} mục dòng thời gian đã chọn? Chúng sẽ bị gỡ khỏi hồ sơ cốt truyện.`)) return;
     try {
       const d = await cdGetData();
       let removed = 0;
@@ -11516,7 +11516,7 @@ try {
       if (removed) {
         await cdSaveData(d);
         await cdRefreshInjection();
-        if (typeof toastr !== 'undefined') toastr.success(`Đã xóa hàng loạt${removed} mục dòng thời gian`);
+        if (typeof toastr !== 'undefined') toastr.success(`Đã xóa hàng loạt ${removed} mục dòng thời gian`);
       } else {
         if (typeof toastr !== 'undefined') toastr.info('Các mục đã chọn đều không có thay đổi');
       }
@@ -11998,7 +11998,7 @@ Yêu cầu:
         </details>
         <div class="cd-floor-header">
           <h3 class="cd-write-title"><i class="fa-regular fa-layer-group"></i> Quản lý tầng</h3>
-          <p class="cd-write-desc">Tổng${totalCount} tầng,${unrecordedCount} tầng chưa ghi (tầng ghi gần nhất: #${lastRecordedFloor >= 0 ? lastRecordedFloor : 'Không'})</p>
+          <p class="cd-write-desc">Tổng ${totalCount} tầng,${unrecordedCount} tầng chưa ghi (tầng ghi gần nhất: #${lastRecordedFloor >= 0 ? lastRecordedFloor : 'Không'})</p>
         </div>
         ${pagination}
         <div class="cd-floor-list">
@@ -12015,10 +12015,10 @@ Yêu cầu:
           <h3 class="cd-write-title"><i class="fa-regular fa-compress"></i> Nén hợp nhất hồ sơ cốt truyện</h3>
           <p class="cd-write-desc">Nén hợp nhất các bản tóm tắt cốt truyện tích lũy nhiều lần thành một bản gọn</p>
           <div class="cd-write-compress-info">
-            <span>Tuyến chính${(arc.mainline || '').length} chữ</span>
-            <span>Tuyến phụ${(arc.sideline || '').length} chữ</span>
-            <span>Trạng thái${(arc.states || '').length} chữ</span>
-            <span>Chưa giải quyết${(arc.unresolved || '').length} chữ</span>
+            <span>Tuyến chính ${(arc.mainline || '').length} chữ</span>
+            <span>Tuyến phụ ${(arc.sideline || '').length} chữ</span>
+            <span>Trạng thái ${(arc.states || '').length} chữ</span>
+            <span>Chưa giải quyết ${(arc.unresolved || '').length} chữ</span>
           </div>
           <button class="cd-btn-primary" id="cd-do-compress"${hasArchive ? '' : 'disabled'} style="margin-top:8px;">
             ${hasArchive ? 'Nén hợp nhất hồ sơ cốt truyện' : 'Chưa có hồ sơ cốt truyện để nén'}
@@ -12039,7 +12039,7 @@ Yêu cầu:
           </div>
 
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-            <span style="font-size: calc(0.62rem * var(--cd-fs, 1));color:#8b7355;">Phát hiện${unrecordedCount} tầng lịch sử chưa ghi, mỗi lô</span>
+            <span style="font-size: calc(0.62rem * var(--cd-fs, 1));color:#8b7355;">Phát hiện ${unrecordedCount} tầng lịch sử chưa ghi, mỗi lô</span>
             <input type="number" id="cd-backfill-batch" class="cd-input" value="30" min="5" max="100" style="width:55px;">
             <span style="font-size: calc(0.62rem * var(--cd-fs, 1));color:#8b7355;">tầng</span>
             <button class="cd-btn-primary" id="cd-backfill-all">Viết bù tất cả một chạm</button>
@@ -12171,25 +12171,25 @@ Yêu cầu:
         batches.push(unrecordedAi.slice(i, i + batchSize));
       }
       if (unrecordedAi.length > 100) {
-        if (!confirm(`Phát hiện${unrecordedAi.length} tầng lịch sử chưa ghi, sẽ chia làm${batches.length} lô để ghi (mỗi lô${batchSize} tầng), xác nhận tiếp tục?`)) return;
-      } else if (!confirm(`Phát hiện${unrecordedAi.length} tầng lịch sử chưa ghi, sẽ chia làm${batches.length} lô để ghi, xác nhận tiếp tục?`)) {
+        if (!confirm(`Phát hiện ${unrecordedAi.length} tầng lịch sử chưa ghi, sẽ chia làm ${batches.length} lô để ghi (mỗi lô ${batchSize} tầng), xác nhận tiếp tục?`)) return;
+      } else if (!confirm(`Phát hiện ${unrecordedAi.length} tầng lịch sử chưa ghi, sẽ chia làm ${batches.length} lô để ghi, xác nhận tiếp tục?`)) {
         return;
       }
       for (let bi = 0; bi < batches.length; bi++) {
         const batch = batches[bi];
-        $('#cd-backfill-progress').text(`Đang viết bù lô thứ${bi+1}/${batches.length} (#${batch[0].message_id}-#${batch[batch.length-1].message_id} tầng)...`);
+        $('#cd-backfill-progress').text(`Đang viết bù lô thứ ${bi+1}/${batches.length} (#${batch[0].message_id}-#${batch[batch.length-1].message_id} tầng)...`);
         try {
           await cdRunDiary({ manual: true, silent: true, extraFloors: batch });
           await new Promise(r => setTimeout(r, 500)); // Dừng giữa các lô, chờ nhả khóa
-          $('#cd-backfill-progress').text(`Đã hoàn thành lô thứ${bi+1}/${batches.length}`);
+          $('#cd-backfill-progress').text(`Đã hoàn thành lô thứ ${bi+1}/${batches.length}`);
         } catch (e) {
-          $('#cd-backfill-progress').text(`Lô thứ${bi+1} thất bại:${e.message}, đã dừng`);
+          $('#cd-backfill-progress').text(`Lô thứ ${bi+1} thất bại:${e.message}, đã dừng`);
           toastr.error('Viết bù bị gián đoạn: ' + e.message);
           return;
         }
       }
       $('#cd-backfill-progress').text('Đã viết bù xong toàn bộ!');
-      toastr.success(`Viết bù lịch sử xong, tổng cộng${unrecordedAi.length} tầng`);
+      toastr.success(`Viết bù lịch sử xong, tổng cộng ${unrecordedAi.length} tầng`);
     });
   }
   
@@ -12456,7 +12456,7 @@ async function cdExpandPsyche(name, entry, data) {
   if (cdBusy) { cdBusyToast(); return; }
   cdBusy = true; cdBusyLabel = 'Tạo độc thoại nội tâm'; cdBusyAt = Date.now();
   try {
-    toastr.info(`Đang tạo độc thoại nội tâm của${name}...`);
+    toastr.info(`Đang tạo độc thoại nội tâm của ${name}...`);
     cdAddLog('api_req', `Request bổ sung tâm lý:${name}`);
     const s = cdGetSettings();
     const msgs = [
@@ -12500,7 +12500,7 @@ async function cdRegenSingleEntry(name, idx) {
 
   cdBusy = true; cdBusyLabel = 'Tạo lại nhật ký'; cdBusyAt = Date.now();
   try {
-    if (typeof toastr !== 'undefined') toastr.info(`Đang tạo lại nhật ký của${name}...`);
+    if (typeof toastr !== 'undefined') toastr.info(`Đang tạo lại nhật ký của ${name}...`);
     cdAddLog('api_req', `[Tạo lại nhật ký]${name} tầng #${floor}`);
     const msgs = await cdBuildDiaryPrompt([winFloor], _cur, s);
     const res = await cdWithTimeout(cdApiComplete(msgs, s), 120000, 'Tạo lại nhật ký');
@@ -12602,7 +12602,7 @@ async function cdRenderTimeline() {
   let html = '<div class="cd-timeline">';
   let lastDate = '';
   for (const e of allEntries) {
-    const dateLabel = e.date || `Tầng${e.turn}`;
+    const dateLabel = e.date || `Tầng ${e.turn}`;
     const showDate = dateLabel !== lastDate;
     lastDate = dateLabel;
     const moodEmoji = cdMoodEmoji(e.mood);
@@ -12803,7 +12803,7 @@ function cdRenderExport() {
       a.download = `Di_chuyen_toan_bo_${charName || 'Nhân vật'}_${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      toastr.success(`Đã xuất gói di chuyển toàn bộ (chat${pkg.chat.length} tầng + hồi ức)`);
+      toastr.success(`Đã xuất gói di chuyển toàn bộ (chat ${pkg.chat.length} tầng + hồi ức)`);
     } catch (e) {
       toastr.error('Xuất gói di chuyển toàn bộ thất bại: ' + (e && e.message));
     }
@@ -12854,7 +12854,7 @@ function cdRenderExport() {
       if (typeof targetCtx.saveChat === 'function') { try { await targetCtx.saveChat(); } catch (e) {} }
       if (typeof targetCtx.saveMetadata === 'function') { try { await targetCtx.saveMetadata(); } catch (e) {} }
       if (typeof targetCtx.reloadCurrentChat === 'function') { try { await targetCtx.reloadCurrentChat(); } catch (e) {} }
-      toastr.success(`Đã nhập gói di chuyển toàn bộ: chat mới${msgs.length} tầng + hồi ức đã được khôi phục`);
+      toastr.success(`Đã nhập gói di chuyển toàn bộ: chat mới ${msgs.length} tầng + hồi ức đã được khôi phục`);
       if (typeof cdRenderExport === 'function') cdRenderExport();
     } catch (e) {
       toastr.error('Nhập gói di chuyển toàn bộ thất bại: ' + (e && e.message));
@@ -13050,16 +13050,16 @@ ${charHtml}
       const entries = (data.diaries[selected] || []).slice().sort((a, b) => (a.message_id || 0) - (b.message_id || 0));
       if (!entries.length) { toastr.info('Nhân vật này chưa có nhật ký'); return; }
       
-      const lines = [`# ${selected} - Tự truyện`, `Thời gian xuất:${new Date().toLocaleString()}`, `Tổng${entries.length} bài nhật ký`, '', '---', ''];
+      const lines = [`# ${selected} - Tự truyện`, `Thời gian xuất:${new Date().toLocaleString()}`, `Tổng ${entries.length} bài nhật ký`, '', '---', ''];
       let chapter = 1;
       for (let i = 0; i < entries.length; i++) {
         const e = entries[i];
         if (i === 0 || (e.message_id - entries[i-1].message_id) > 20) {
-          lines.push(`\n## Chương${chapter}\n`);
+          lines.push(`\n## Chương ${chapter}\n`);
           chapter++;
         }
         const dateStr = e.date ? ` (${e.date})` : '';
-        lines.push(`### Tầng${e.message_id}${dateStr}`);
+        lines.push(`### Tầng ${e.message_id}${dateStr}`);
         if (e.mood) lines.push(`Tâm trạng:${e.mood}`);
         if (e.attitude_to_user) lines.push(`thái độ với người dùng:${e.attitude_to_user}`);
         lines.push('');
@@ -13292,7 +13292,7 @@ async function cdRenderSettings() {
           </span></div>
           <div class="cds-row" id="cd-s-autocompress-countrow" style="${s.autoCompressMode === 'size' ? 'display:none;' : ''}"><span class="cds-lab">Ngưỡng kích hoạt (mục)</span><span class="cds-ctrl"><input type="number" id="cd-s-autocompress-threshold" value="${s.autoCompressThreshold || 30}" min="5" max="200" class="cd-input"></span></div>
           <div class="cds-row" id="cd-s-autocompress-sizerow" style="${s.autoCompressMode === 'size' ? '' : 'display:none;'}"><span class="cds-lab">Ngưỡng số chữ tích lũy (chữ)</span><span class="cds-ctrl"><input type="number" id="cd-s-autocompress-size" value="${s.autoCompressSize || 2000}" min="200" max="20000" step="100" class="cd-input"></span></div>
-          <div class="cds-hint" style="margin-top:4px;font-size: calc(0.55rem * var(--cd-fs, 1));color:#8b7355;opacity:0.7;">Theo số mục: tích lũy${s.autoCompressThreshold || 30} sự kiện thì kích hoạt gộp | Theo số chữ: tích lũy thêm${s.autoCompressSize || 2000} chữ thì kích hoạt nén (gồm mục theo dõi tùy chỉnh, nén xong đặt lại bộ đếm)</div>
+          <div class="cds-hint" style="margin-top:4px;font-size: calc(0.55rem * var(--cd-fs, 1));color:#8b7355;opacity:0.7;">Theo số mục: tích lũy ${s.autoCompressThreshold || 30} sự kiện thì kích hoạt gộp | Theo số chữ: tích lũy thêm ${s.autoCompressSize || 2000} chữ thì kích hoạt nén (gồm mục theo dõi tùy chỉnh, nén xong đặt lại bộ đếm)</div>
         </div>
       </details>
 
@@ -13423,7 +13423,7 @@ async function cdRenderSettings() {
       listEl.find('span').css('background', '').css('color', '');
       $(this).css('background', '#cdb69b').css('color', '#fff');
     });
-    toastr.success(`Đã lấy được${models.length} model`);
+    toastr.success(`Đã lấy được ${models.length} model`);
       } finally { try { _fmBtn.prop('disabled', false).html(_fmOld); } catch (_eFm) {} }
 });
 
@@ -14795,7 +14795,7 @@ ${relEntries.length ? `<label style="font-size: calc(0.6rem * var(--cd-fs, 1));"
         <div style="font-size: calc(0.62rem * var(--cd-fs, 1));color:#6b5a48;">
 ${hasArchive ? `
             <div style="padding:4px 6px;">
-Tuyến chính${(archive.mainline||'').length} chữ · Tuyến phụ${(archive.sideline||'').length} chữ · Trạng thái${(archive.states||'').length} chữ · Chưa giải quyết${(archive.unresolved||'').length} chữ · Vật phẩm${(Array.isArray(archive.items)?archive.items.length:0)} mục${(archive.custom && Object.keys(archive.custom).length) ? (' · Tùy chỉnh ' + Object.values(archive.custom).reduce((sum,a)=>sum+((Array.isArray(a)?a.length:0)||0),0) + ' mục') : ''}
+Tuyến chính ${(archive.mainline||'').length} chữ · Tuyến phụ ${(archive.sideline||'').length} chữ · Trạng thái ${(archive.states||'').length} chữ · Chưa giải quyết ${(archive.unresolved||'').length} chữ · Vật phẩm ${(Array.isArray(archive.items)?archive.items.length:0)} mục ${(archive.custom && Object.keys(archive.custom).length) ? (' · Tùy chỉnh ' + Object.values(archive.custom).reduce((sum,a)=>sum+((Array.isArray(a)?a.length:0)||0),0) + ' mục') : ''}
 
             </div>
             <button class="cd-btn-danger cd-mgr-clear-archive" style="margin-top:4px;font-size: calc(0.6rem * var(--cd-fs, 1));padding:3px 10px;min-width:auto;"><i class="fa-regular fa-trash-can"></i> Xóa sạch hồ sơ cốt truyện</button>
@@ -14814,7 +14814,7 @@ Tuyến chính${(archive.mainline||'').length} chữ · Tuyến phụ${(archive.
           <div style="padding:4px 6px;">
             Địa điểm:${escapeHtml((data.liveTableData && data.liveTableData[0] && data.liveTableData[0].location) || '(trống)')}<br>
             Nhân vật:${Object.keys((data.liveTableData && data.liveTableData[0] && data.liveTableData[0].chars) || {}).join(', ') || '(không có)'}<br>
-            Lý lịch: trải nghiệm${((data.liveTableData && data.liveTableData[0] && data.liveTableData[0].lower && data.liveTableData[0].lower['Sự việc đã trải qua']) || '').split('\n').filter(Boolean).length} mục · vật phẩm${((data.liveTableData && data.liveTableData[0] && data.liveTableData[0].lower && data.liveTableData[0].lower['Vật phẩm sở hữu']) || '').split('\n').filter(Boolean).length} mục · nhiệm vụ${((data.liveTableData && data.liveTableData[0] && data.liveTableData[0].lower && data.liveTableData[0].lower['Nhiệm vụ']) || '').split('\n').filter(Boolean).length} mục
+            Lý lịch: trải nghiệm ${((data.liveTableData && data.liveTableData[0] && data.liveTableData[0].lower && data.liveTableData[0].lower['Sự việc đã trải qua']) || '').split('\n').filter(Boolean).length} mục · vật phẩm ${((data.liveTableData && data.liveTableData[0] && data.liveTableData[0].lower && data.liveTableData[0].lower['Vật phẩm sở hữu']) || '').split('\n').filter(Boolean).length} mục · nhiệm vụ ${((data.liveTableData && data.liveTableData[0] && data.liveTableData[0].lower && data.liveTableData[0].lower['Nhiệm vụ']) || '').split('\n').filter(Boolean).length} mục
           </div>
           <button class="cd-btn-danger cd-mgr-clear-table" style="margin-top:4px;font-size: calc(0.6rem * var(--cd-fs, 1));padding:3px 10px;min-width:auto;"><i class="fa-regular fa-trash-can"></i> Xóa sạch dữ liệu điền bảng</button>
           <div style="margin-top:8px;border-top:1px dashed #d8c9a8;padding-top:6px;">
@@ -14824,7 +14824,7 @@ ${snaps.length ? `<div style="margin-top:4px;max-height:160px;overflow-y:auto;">
                 const isLast = i === snaps.length - 1;
                 const tStr = sp.time ? new Date(sp.time).toLocaleString() : '';
                 return `<div style="display:flex;align-items:center;gap:6px;padding:2px 0;font-size: calc(0.6rem * var(--cd-fs,1));color:#6b5a48;border-bottom:1px solid rgba(180,150,120,0.05);">
-                  <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Ảnh chụp #${i + 1} tầng${sp.mid !== undefined ? '#' + sp.mid : ''} ${tStr}${isLast ? ' (hiện tại)' : ''}</span>
+                  <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Ảnh chụp #${i + 1} tầng ${sp.mid !== undefined ? '#' + sp.mid : ''} ${tStr}${isLast ? ' (hiện tại)' : ''}</span>
                   <button class="cd-snap-del" data-idx="${i}" title="Xóa ảnh chụp này, bảng sẽ lùi về bản mới nhất sau khi xóa"><i class="fa-regular fa-trash-can"></i></button>
                 </div>`;
               }).join('')}
@@ -14851,7 +14851,7 @@ ${cards.length ? `<label style="font-size: calc(0.6rem * var(--cd-fs, 1));"><inp
             </label>
           `).join('')}
           ${cards.length > _cardVisible ? `<div style="padding:4px 6px;text-align:center;">
-            <button class="cd-btn-secondary cd-mgr-load-more-cards" style="font-size: calc(0.6rem * var(--cd-fs, 1));padding:3px 12px;">Tải thêm thẻ bài (đã hiển thị${_cardVisible}/${cards.length})</button>
+            <button class="cd-btn-secondary cd-mgr-load-more-cards" style="font-size: calc(0.6rem * var(--cd-fs, 1));padding:3px 12px;">Tải thêm thẻ bài (đã hiển thị ${_cardVisible}/${cards.length})</button>
           </div>` : ''}
         </div>` : '<p style="font-size: calc(0.62rem * var(--cd-fs, 1));color:#8b7355;opacity:0.4;padding:4px 0;">Chưa có thẻ bài</p>'}
       </div>
@@ -14874,7 +14874,7 @@ ${cdGetBackups().length ? `<div style="max-height:180px;overflow-y:auto;">
           ${cdGetBackups().map(function(b, i) {
             const t = b.time ? new Date(b.time).toLocaleString() : '';
             return `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size: calc(0.6rem * var(--cd-fs,1));color:#6b5a48;border-bottom:1px solid rgba(180,150,120,0.05);">
-              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Sao lưu #${i + 1} ${b.label || ''} ${t} nhật ký${b.diaryCount || 0} bài</span>
+              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Sao lưu #${i + 1} ${b.label || ''} ${t} nhật ký ${b.diaryCount || 0} bài</span>
               <button class="cd-bk-restore" data-idx="${i}" title="Dùng bản sao lưu này khôi phục dữ liệu hiện tại" style="font-size:0.62rem;color:#7a5c34;background:none;border:none;cursor:pointer;">Khôi phục</button>
               <button class="cd-bk-del" data-idx="${i}" title="Xóa bản sao lưu này" style="font-size:0.62rem;color:#c84632;background:none;border:none;cursor:pointer;">Xóa</button>
             </div>`;
@@ -14968,7 +14968,7 @@ ${cdGetBackups().length ? `<div style="max-height:180px;overflow-y:auto;">
       toastr.warning('Hãy chọn các mục cần xóa trước');
       return;
     }
-    if (!await confirmDelete(`Xác nhận xóa${totalDeleted} mục dữ liệu? Không thể khôi phục!`)) return;
+    if (!await confirmDelete(`Xác nhận xóa ${totalDeleted} mục dữ liệu? Không thể khôi phục!`)) return;
 
     const d = await cdGetData();
 
@@ -15014,7 +15014,7 @@ ${cdGetBackups().length ? `<div style="max-height:180px;overflow-y:auto;">
     await cdRefreshInjection();
     // ★ FIX10: báo số thực tế đã xóa, không báo số đã chọn (chọn mà không khớp thì không nên tính vào)
     const _actually = _deletedDiary + checkedRel.length + checkedCard.length;
-    toastr.success(`Đã xóa${_actually} mục dữ liệu`);
+    toastr.success(`Đã xóa ${_actually} mục dữ liệu`);
     cdRenderManage();
   });
 
@@ -15325,7 +15325,7 @@ async function cdRenderTable() {
       cdRenderTable();
     });
     $('#cd-lt-resetprompt').off('click').on('click', function () {
-      const def = `[Lệnh điền bảng]\nHãy dựa vào đoạn cốt truyện vừa rồi, ở cuối câu trả lời dùng một khối thu gọn <details><summary>Bảng tình báo</summary> để bọc, bên trong xuất một thẻ <liwe>, trong thẻ ghi theo định dạng sau:\n\nĐịa điểm: (địa điểm hiện tại, có thay đổi mới xuất)\nTên nhân vật: tên nhân vật cụ thể|Trạng thái:…|Y phục:…|Hảo cảm với người dùng:…|Ghi chú:…\n(mỗi nhân vật xuất hiện một dòng; các trường con phân cách bằng |, định dạng là "trường con:giá trị"; trường con của nhân vật đó có thay đổi mới xuất dòng đó, ghi đè cập nhật)\n\nSự việc đã trải qua: (những việc {{user}} đã trải qua, mỗi mục kèm thời gian địa điểm, như "Ngày thứ ba·Thành phố bị lãng quên: nội dung"; có trải nghiệm mới mới xuất)\nVật phẩm sở hữu: (vật phẩm {{user}} mới nhận được, mỗi món một mục; có vật phẩm mới mới xuất)\nNhiệm vụ: (nhiệm vụ mới hoặc cập nhật của {{user}}, từng mục một; có nhiệm vụ mới mới xuất)\n\nQuy tắc:\n0. Lý lịch (trải nghiệm/vật phẩm/nhiệm vụ) đều là của nhân vật chính {{user}}.\n1. Trích xuất trung thực từ cốt truyện, không bịa đặt; mục nào lần này không thay đổi/không liên quan thì đừng xuất.\n2. Dòng nhân vật và địa điểm là "ghi đè cập nhật"; trải nghiệm/vật phẩm/nhiệm vụ là "thêm mục mới".\n3. Sự việc đã trải qua nhất định phải kèm thời gian địa điểm.\n4. Dùng <details><summary>Bảng tình báo</summary> ... </details> bọc thẻ <liwe>, chính văn chỉ hiển thị thanh thu gọn, không hiển thị trực tiếp nội dung bảng.\n`;
+      const def = `[Lệnh điền bảng]\nHãy dựa vào đoạn cốt truyện vừa rồi, ở cuối câu trả lời dùng một khối thu gọn <details><summary>Bảng tình báo</summary> để bọc, bên trong xuất một thẻ <liwe>, trong thẻ ghi theo định dạng sau:\n\nĐịa điểm: (địa điểm hiện tại, chỉ xuất khi có thay đổi)\nTên nhân vật: tên nhân vật cụ thể|Trạng thái:…|Y phục:…|Hảo cảm với người dùng:…|Ghi chú:…\n(mỗi nhân vật xuất hiện một dòng; các trường con phân cách bằng |, định dạng là "trường con:giá trị"; trường con của nhân vật đó có thay đổi thì mới xuất dòng đó, ghi đè cập nhật)\n\nSự việc đã trải qua: (những việc {{user}} đã trải qua, mỗi mục kèm thời gian địa điểm, như "Ngày thứ ba·Thành phố bị lãng quên: nội dung"; chỉ xuất khi có trải nghiệm mới)\nVật phẩm sở hữu: (vật phẩm {{user}} mới nhận được, mỗi món một mục; chỉ xuất khi có vật phẩm mới)\nNhiệm vụ: (nhiệm vụ mới hoặc cập nhật của {{user}}, từng mục một; chỉ xuất khi có nhiệm vụ mới)\n\nQuy tắc:\n0. Lý lịch (trải nghiệm/vật phẩm/nhiệm vụ) đều là của nhân vật chính {{user}}.\n1. Trích xuất trung thực từ cốt truyện, không bịa đặt; mục nào lần này không thay đổi/không liên quan thì đừng xuất.\n2. Dòng nhân vật và địa điểm là "ghi đè cập nhật"; trải nghiệm/vật phẩm/nhiệm vụ là "thêm mục mới".\n3. Sự việc đã trải qua nhất định phải kèm thời gian địa điểm.\n4. Dùng <details><summary>Bảng tình báo</summary> ... </details> bọc thẻ <liwe>, chính văn chỉ hiển thị thanh thu gọn, không hiển thị trực tiếp nội dung bảng.\n`;
       $('#cd-lt-prompt').val(def);
       toastr.info('Đã điền prompt mặc định, hãy bấm “Lưu thiết lập” để có hiệu lực');
     });
@@ -15660,7 +15660,7 @@ ${diaryVectors.length > 0 ? `
         listEl.find('span').css('background', '').css('color', '');
         $(this).css('background', '#c9a87c').css('color', '#fff');
       });
-      toastr.success(`Đã lấy được${models.length} model`);
+      toastr.success(`Đã lấy được ${models.length} model`);
     } catch (e) {
       toastr.error('Lấy model thất bại: ' + e.message);
     } finally {
@@ -15715,7 +15715,7 @@ ${diaryVectors.length > 0 ? `
         listEl.find('span').css('background', '').css('color', '');
         $(this).css('background', '#c9a87c').css('color', '#fff');
       });
-      toastr.success(`Đã lấy được${models.length} model Rerank, bấm nhãn bên dưới để điền vào`);
+      toastr.success(`Đã lấy được ${models.length} model Rerank, bấm nhãn bên dưới để điền vào`);
     } catch (e) {
       toastr.error('Lấy model Rerank thất bại: ' + e.message);
     } finally {
@@ -15736,7 +15736,7 @@ ${diaryVectors.length > 0 ? `
       const query = 'Nhân vật chính nói chuyện với phù thủy trong quán rượu';
       const docs = ['Nhân vật chính trò chuyện với phù thủy trong quán rượu và nhận được thuốc giải', 'Nhân vật chính đi săn trong rừng', 'Đoạn miêu tả thời tiết không liên quan'];
       const result = await cdRerank(query, docs, { base, key, model });
-      const orderInfo = result.map(r => `Tầng${r.index} (điểm${r.score.toFixed(3)})`).join(' → ');
+      const orderInfo = result.map(r => `Tầng ${r.index} (điểm ${r.score.toFixed(3)})`).join(' → ');
       $res.html(`<span style="color:#5a9;">✅ Kết nối thành công! Kết quả xếp hạng lại:${escapeHtml(orderInfo)}</span>`);
       cdAddLog('info', '[rerank] Thử kết nối thành công', { base, model, 'Sắp xếp lại': orderInfo });
     } catch (e) {
@@ -15767,7 +15767,7 @@ ${diaryVectors.length > 0 ? `
     try {
       await cdVectorizeArchive(d);
       await cdSaveData(d);
-      toastr.success(`Dựng lại vector xong, tổng cộng${(d.archiveVectors || []).length} mục`);
+      toastr.success(`Dựng lại vector xong, tổng cộng ${(d.archiveVectors || []).length} mục`);
       cdRenderVector();
     } catch (e) {
       toastr.error('Dựng lại vector thất bại: ' + e.message);
@@ -15821,7 +15821,7 @@ ${results.length > 0 ? results.map((r, i) => `
     try {
       await cdVectorizeDiary(d);
       await cdSaveData(d);
-      toastr.success(`Dựng lại vector nhật ký xong, tổng cộng${(d.diaryVectors || []).length} mục`);
+      toastr.success(`Dựng lại vector nhật ký xong, tổng cộng ${(d.diaryVectors || []).length} mục`);
       cdRenderVector();
     } catch (e) {
       toastr.error('Dựng lại vector nhật ký thất bại: ' + e.message);
@@ -18581,7 +18581,7 @@ function _cfMountV2(){
     if(!panelManage) return;
     var bar=panelManage.querySelector('#mgMultiBar'); if(bar) bar.style.display=mgMultiMode?'flex':'none';
     var q=panelManage.querySelector('#mgMultiQ'); if(q) q.style.opacity=mgMultiMode?'.6':'1';
-    var cnt=panelManage.querySelector('#mgMultiCount'); if(cnt) cnt.textContent='Nhân vật'+Object.keys(mgSelR).length+' / Thế giới'+Object.keys(mgSelW).length;
+    var cnt=panelManage.querySelector('#mgMultiCount'); if(cnt) cnt.textContent='Nhân vật '+Object.keys(mgSelR).length+' / Thế giới '+Object.keys(mgSelW).length;
     var rl=panelManage.querySelector('#mgRoleList'); if(rl){ rl.innerHTML='';
       if(!ROSTER.length){ rl.innerHTML='<div style="font-size:10px;color:#9aa1a7;padding:16px 4px;">Chưa có nhân vật.</div>'; }
       else ROSTER.forEach(function(x){
@@ -18862,7 +18862,7 @@ function _cfMountV2(){
     var af=(r.affections&&r.affections.length)?r.affections.map(function(g){return 'Khắc ghi: '+(g.t||'')+(g.mood?('['+g.mood+']'):'');}).join(' / '):'';
     var relTxt=[gr,af].filter(Boolean).join(' ');
     var chatTxt=cdForumRecentChat(6);
-    var favTxt=(r.f!==undefined?('Hảo cảm'+r.f):(r.fav!==undefined?('Hảo cảm'+r.fav):''));
+    var favTxt=(r.f!==undefined?('Hảo cảm '+r.f):(r.fav!==undefined?('Hảo cảm '+r.fav):''));
     var prompt='Bạn là “'+nm+'”, chính là tiềm thức của người ấy, đang viết một cuốn nhật ký riêng tư chỉ mình mình đọc. Hãy xé bỏ “chiếc mặt nạ đeo trước công chúng”, viết ra mặt chân thật nhất, không muốn cho ai xem nhất.\n\n'
       +'Quan hệ giữa bạn và ' + (selfNm?('“'+selfNm+'” — nhân vật chính xuyên không này'):'Nhân vật chính') + ': '+favTxt+'; giai đoạn quan hệ: '+(r.stage||'')+'.\n'
       +'Tính cách của bạn: '+(r.personality||r.oneLine||'')+'.\n'
@@ -19062,7 +19062,7 @@ function _cfMountV2(){
     var btn=this; if(btn && !btn.dataset.busy){ btn.dataset.busy='1'; var ot=btn.querySelector('span'); if(ot) ot.textContent='Người ấy đang lật sổ viết lời trong lòng…'; }
     cdForumGenDiary(_cfCurDiary).then(function(ok){
       if(btn && btn.dataset){ btn.dataset.busy=''; var ot=btn.querySelector('span'); if(ot) ot.textContent='Viết một bài (kết hợp bài đăng / thế giới quan / lịch sử trò chuyện để bổ sung lời trong lòng)'; }
-      if(ok){ if(typeof toastr==='function') toastr.success(nm+'Đã viết một bài nhật ký.'); renderDiaryShelf(_cfCurDiary); }
+      if(ok){ if(typeof toastr==='function') toastr.success(nm+' đã viết một bài nhật ký.'); renderDiaryShelf(_cfCurDiary); }
       else if(typeof toastr==='function') toastr.error('Viết nhật ký thất bại, lát nữa thử lại nhé.');
     });
   });
@@ -19487,7 +19487,7 @@ cdBindOnce(R.querySelector('#cfImgStyle'),function(){
   var TYPE_PANEL=R.querySelector('#genTypePanel'), TYPE_SEL=R.querySelector('#genTypeSel'), TYPE_CHIPS=R.querySelector('#genTypeChips');
   var selTypes=(cfg.selTypes&&Array.isArray(cfg.selTypes))?cfg.selTypes.slice():[];
   function paintTypeChips(){
-    if(TYPE_SEL) TYPE_SEL.textContent = selTypes.length ? ('Đã chọn'+selTypes.length) : 'Tất cả';
+    if(TYPE_SEL) TYPE_SEL.textContent = selTypes.length ? ('Đã chọn '+selTypes.length) : 'Tất cả';
     if(!TYPE_CHIPS) return;
     TYPE_CHIPS.innerHTML='';
     CT_OPTS.forEach(function(o){
@@ -24506,8 +24506,8 @@ if (typeof window !== 'undefined') {
     }
   }
   /* Gợi ý nhập của nhóm (trong lúc gọi gộp hiển thị một lần “các thành viên đang nhập”) */
-  function _phGroupTipShow() { var b = document.getElementById('cgBody'); if (b) b.innerHTML += '<div class="cg-msg"><div class="cg-sender"><i class="fa-solid fa-ellipsis"></i> Trong nhóm đang có người nhập…</div></div>'; if (b) b.scrollTop = b.scrollHeight; }
-  function _phGroupTipHide() { var b = document.getElementById('cgBody'); if (!b) return; var n = b.querySelectorAll('div'); for (var i = 0; i < n.length; i++) { if (n[i].textContent && n[i].textContent.indexOf('Đang nhập') >= 0) { n[i].remove(); break; } } }
+  function _phGroupTipShow() { var b = document.getElementById('cgBody'); if (b) b.innerHTML += '<div class="cg-msg"><div class="cg-sender"><i class="fa-solid fa-ellipsis"></i> Mọi người trong nhóm đang nhập…</div></div>'; if (b) b.scrollTop = b.scrollHeight; }
+  function _phGroupTipHide() { var b = document.getElementById('cgBody'); if (!b) return; var n = b.querySelectorAll('div'); for (var i = 0; i < n.length; i++) { if (n[i].textContent && n[i].textContent.indexOf('đang nhập') >= 0) { n[i].remove(); break; } } }
   /* Dự phòng hiển thị thành viên không rõ tên */
   function _cgUnnamed(text) { var b = document.getElementById('cgBody'); if (b) b.innerHTML += '<div class="cg-msg"><div class="cg-sender">Ai đó</div><div class="cdp-ball left cg-ball">' + _phEscape(text) + '</div></div>'; if (b) b.scrollTop = b.scrollHeight; }
   /* Cảm giác phương tiện: hiển thị “XX đang nhập…”, một lúc sau biến mất */
