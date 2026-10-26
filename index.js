@@ -793,6 +793,9 @@ async function cdGetRawGen(ctx) {
 async function callTavern(messages, _s) {
   const ctx = SillyTavern.getContext();
   const ordered = messages.map(m => ({ role: m.role, content: m.content }));
+  // Đánh dấu mảng này là request nội bộ của plugin: generateRaw của SillyTavern phát CHAT_COMPLETION_PROMPT_READY với chính mảng này,
+  // cdOnBeforeGeneration nhận ra dấu này và không tiêm ký ức/nghi thức vào request tóm tắt của chính plugin
+  try { Object.defineProperty(ordered, '__cdInternal', { value: true }); } catch (e) {}
   // ★ Prompt trần nghiêm ngặt (mặc định bật): chỉ gửi bản thân nội dung tóm tắt cho model, không kèm preset/thẻ nhân vật/sách thế giới/jailbreak của Tavern
   const bare = !(_s && _s.strictPrompt === false);
   const ov = bare ? cdBareOverrides() : undefined;
@@ -803,7 +806,7 @@ async function callTavern(messages, _s) {
   const rawGen = await cdGetRawGen(ctx);
   if (rawGen) {
     try {
-      const args = { ordered_prompts: ordered, should_stream: false };
+      const args = { prompt: ordered, ordered_prompts: ordered, should_stream: false }; // SillyTavern generateRaw nhận nội dung qua `prompt` (chuỗi hoặc mảng tin nhắn); `ordered_prompts` bị bỏ qua → trước đây gửi đi tin user rỗng
       if (ov) args.overrides = ov;
       const result = await rawGen(args);
       _lg('[API] Kênh ① generateRaw' + _tag);
@@ -3612,6 +3615,7 @@ async function cdOnBeforeGeneration(eventData) {
     const chat = data.chat || [];
     const dryRun = data.dryRun === true || data.dry_run === true;
     if (dryRun || !Array.isArray(chat) || !chat.length) return;
+    if (chat.__cdInternal) return; // request tóm tắt nội bộ của plugin: không tiêm
     // idempotent: skip if already injected for this chat ref
     if (typeof _cdInjectedChatRefs.has === 'function' && _cdInjectedChatRefs.has(chat)) { return; }
 
