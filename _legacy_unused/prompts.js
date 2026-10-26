@@ -1,42 +1,42 @@
 // ============================================================
-// 角色日记 插件 v2.0.0 — Prompt & JSON 解析
-// 路径: SillyTavern/extensions/character-diary/prompts.js
+// Plugin Nhật ký nhân vật v2.0.0 — Prompt & phân tích JSON
+// Đường dẫn: SillyTavern/extensions/character-diary/prompts.js
 // ============================================================
 'use strict';
 
-/* ============================== Prompt: 日记 ============================== */
+/* ============================== Prompt: nhật ký ============================== */
 function cdBuildDiaryPrompt(windowFloors, data, s) {
   const known = Object.keys(data.diaries).map(name => {
     const al = (data.aliases[name] || []);
-    return al.length ? `${name}(别名: ${al.join('、')})` : name;
+    return al.length ? `${name}(biệt danh: ${al.join(', ')})` : name;
   });
   const memory = Object.entries(data.diaries).map(([name, list]) => {
     const last = list[list.length - 1];
     if (!last) return '';
-    return `【${name}】上次(${last.date || '第' + last.turn + '楼'}): ${last.entry}\n  心情:${last.mood} 对用户态度:${last.attitude_to_user}`;
+    return `【${name}】lần trước (${last.date || 'Tầng ' + last.turn + ''}): ${last.entry}\n  Tâm trạng:${last.mood} Thái độ với người dùng:${last.attitude_to_user}`;
   }).filter(Boolean).join('\n');
   const scene = windowFloors.map(m => `[#${m.message_id} ${m.name}] ${m.message}`).join('\n\n');
   const sys = [
-    '你是一个"角色日记"记录员。阅读给定剧情片段, 为其中每个有名有戏份的登场角色, 以该角色第一人称主观视角写一篇日记。',
-    '要求:',
-    '- 只为有名字、有实际戏份的角色写。纯路人、无名群众忽略。',
-    '- 不要为用户/玩家角色写日记。',
-    s.mainCardIsGM ? '- 如果某角色是旁白/系统/上帝视角/GM式叙述者, 不要为其写。' : '',
-    '- 第一人称, 带该角色的情绪、私心、主观理解(可与事实有偏差)。同一事件不同角色可记得不同。',
-    '- entry 是日记摘要, 不是剧情复述: 聚焦角色的心理活动、情绪、关系变化、关键决定。',
-    '- 涉及性爱/暴力等露骨情节时, 只需简洁概括地提及(例如"与他发生了关系"、"被他压制"), 严禁逐字描写动作、器官、体液等露骨细节。日记重在记录"发生了什么和我的感受", 而非还原过程。',
-    '- 每篇 entry 控制在 150 字以内, 简洁凝练。',
-    '- 复用"已知角色名单"中的主名; 若识别出别名/代称, 归并到已有主名, 并在 aliases 里补充别名。',
-    '- 语言: 跟随剧情片段的主要语言。',
-    '- 用 is_minor 标记角色重要性: 主角、重要配角、有名有戏份的 NPC 标 false; 仅出场一两句、无关紧要的纯路人标 true。',
-    '严格只输出 JSON, 格式:',
-    '{"npcs":[{"name":"主名","aliases":["别名"],"is_minor":false,"date":"剧情时间或第N楼","turn":楼号数字,"entry":"第一人称正文(150字内)","mood":"心情","attitude_to_user":"对用户态度","secret":"没说出口的心思","key_events":["关键事件"],"relationship_with_others":{"某角色":"关系描述"}}]}',
+    'Bạn là người ghi chép “Nhật ký nhân vật”. Đọc đoạn cốt truyện được cho, với mỗi nhân vật xuất hiện có tên có vai diễn trong đó, viết một bài nhật ký bằng góc nhìn chủ quan ngôi thứ nhất của nhân vật đó.',
+    'Yêu cầu:',
+    '- Chỉ viết cho nhân vật có tên, có vai diễn thực tế. Người qua đường thuần túy, đám đông vô danh thì bỏ qua.',
+    '- Đừng viết nhật ký cho nhân vật của người dùng/người chơi.',
+    s.mainCardIsGM ? '- Nếu nhân vật nào là người dẫn truyện/hệ thống/góc nhìn thượng đế/người kể kiểu GM thì đừng viết cho nó.' : '',
+    '- Ngôi thứ nhất, mang cảm xúc, tư tâm, cách hiểu chủ quan của nhân vật đó (có thể lệch với sự thật). Cùng một sự kiện, các nhân vật khác nhau có thể nhớ khác nhau.',
+    '- entry là tóm tắt nhật ký, không phải kể lại cốt truyện: tập trung vào hoạt động tâm lý, cảm xúc, thay đổi quan hệ, quyết định then chốt của nhân vật.',
+    '- Khi liên quan đến tình tiết lộ liễu như tình dục/bạo lực, chỉ cần nhắc tới một cách khái quát ngắn gọn (ví dụ “đã quan hệ với anh ấy”, “bị anh ấy khống chế”), nghiêm cấm mô tả từng chữ động tác, cơ quan, dịch cơ thể và các chi tiết lộ liễu khác. Nhật ký trọng ghi lại “chuyện gì đã xảy ra và cảm nhận của tôi”, chứ không phải tái hiện quá trình.',
+    '- Mỗi entry giới hạn trong 150 chữ, ngắn gọn cô đọng.',
+    '- Dùng lại tên chính trong “danh sách nhân vật đã biết”; nếu nhận ra biệt danh/cách gọi khác thì quy gộp vào tên chính đã có, và bổ sung biệt danh trong aliases.',
+    '- Ngôn ngữ: dùng tiếng Việt.',
+    '- Dùng is_minor đánh dấu mức quan trọng của nhân vật: nhân vật chính, vai phụ quan trọng, NPC có tên có vai diễn đánh false; người qua đường thuần túy chỉ xuất hiện một hai câu, không quan trọng đánh true.',
+    'Chỉ xuất JSON nghiêm ngặt, định dạng:',
+    '{"npcs":[{"name":"Tên chính","aliases":["Biệt danh"],"is_minor":false,"date":"Thời gian trong cốt truyện hoặc tầng N","turn":số tầng,"entry":"Nội dung ngôi thứ nhất (trong 150 chữ)","mood":"Tâm trạng","attitude_to_user":"Thái độ với người dùng","secret":"Tâm tư chưa nói ra","key_events":["Sự kiện then chốt"],"relationship_with_others":{"Nhân vật nào đó":"Mô tả quan hệ"}}]}',
   ].filter(Boolean).join('\n');
   const usr = [
-    known.length ? `已知角色名单: ${known.join('; ')}` : '已知角色名单: (暂无)',
-    memory ? `各角色已有记忆(最新日记):\n${memory}` : '各角色已有记忆: (暂无)',
-    `本次剧情片段:\n${scene}`,
-    '请输出 JSON。',
+    known.length ? `Danh sách nhân vật đã biết: ${known.join('; ')}` : 'Danh sách nhân vật đã biết: (chưa có)',
+    memory ? `Ký ức hiện có của các nhân vật (nhật ký mới nhất):\n${memory}` : 'Ký ức hiện có của các nhân vật: (chưa có)',
+    `Đoạn cốt truyện lần này:\n${scene}`,
+    'Hãy xuất JSON.',
   ].join('\n\n');
   return [
     { role: 'system', content: JAILBREAK + '\n\n' + sys },
@@ -45,42 +45,42 @@ function cdBuildDiaryPrompt(windowFloors, data, s) {
   ];
 }
 
-/* ============================== Prompt: 剧情档案 ============================== */
+/* ============================== Prompt: hồ sơ cốt truyện ============================== */
 const ARCHIVE_SYSTEM = [
-  '你现在是剧情档案整理员。',
-  '任务是把给定聊天记录整理成可长期续写的剧情档案，供后续对话直接引用。',
+  'Bây giờ bạn là người sắp xếp hồ sơ cốt truyện.',
+  'Nhiệm vụ là sắp xếp lịch sử trò chuyện được cho thành hồ sơ cốt truyện có thể viết tiếp lâu dài, để các cuộc hội thoại sau trích dẫn trực tiếp.',
   '',
-  '注意：这段聊天是【本次新增楼层】，不是完整故事。你必须基于"已有剧情进展"做增量扩展，而不是从头写。',
+  'Lưu ý: đoạn trò chuyện này là 【các tầng mới thêm lần này】, không phải toàn bộ câu chuyện. Bạn bắt buộc phải mở rộng tăng dần dựa trên “tiến triển cốt truyện đã có”, chứ không viết lại từ đầu.',
   '',
-  '写作原则：',
-  '1. 只写已经发生的事实，不写猜测、评价、气氛渲染或心理分析。',
-  '2. 叙述时优先交代人物、时间、地点、动作、关键对话内容、结果。',
-  '3. 对剧情推进没有作用的闲聊和重复内容可以压缩，但不能漏掉已经成立的约定、条件、交易、冲突、决策和明显状态变化。',
-  '4. 事件里如果出现物品、证据、金额、药物、条约、代号、身份、职位、伤病、生理变化、关系变化、位置变化，要写清具体内容，不要泛化成"某物"、"某情报"、"发生变化"。',
-  '5. 能明确在场者、目击者、参与者时，要写明，避免后续人物关系或知情范围混乱。',
-  '6. 如果一条连续事件跨越多段聊天，应该合并成完整事件，不要机械按楼层切碎。',
-  '7. 如果原文包含暴力、成人互动、羞辱、伤病、血腥或其他敏感内容，不要跳过，也不要美化，只用客观中性措辞记录。',
-  '8. 输出只能是纯文本，不要加项目符号，不要编号，不要解释你的做法。',
+  'Nguyên tắc viết:',
+  '1. Chỉ viết sự thật đã xảy ra, không viết suy đoán, đánh giá, tô vẽ bầu không khí hay phân tích tâm lý.',
+  '2. Khi kể ưu tiên trình bày nhân vật, thời gian, địa điểm, hành động, nội dung đối thoại then chốt, kết quả.',
+  '3. Chuyện phiếm và nội dung lặp lại không có tác dụng thúc đẩy cốt truyện có thể nén lại, nhưng không được sót các ước định, điều kiện, giao dịch, xung đột, quyết định và thay đổi trạng thái rõ ràng đã thành lập.',
+  '4. Trong sự kiện nếu xuất hiện vật phẩm, chứng cứ, số tiền, thuốc, điều ước, mật danh, thân phận, chức vụ, thương bệnh, thay đổi sinh lý, thay đổi quan hệ, thay đổi vị trí thì phải viết rõ nội dung cụ thể, đừng khái quát thành “vật gì đó”, “tin tình báo gì đó”, “đã có thay đổi”.',
+  '5. Khi xác định rõ được người có mặt, người chứng kiến, người tham gia thì phải ghi rõ, tránh sau này rối loạn quan hệ nhân vật hoặc phạm vi người biết chuyện.',
+  '6. Nếu một sự kiện liên tục trải qua nhiều đoạn trò chuyện thì nên gộp thành sự kiện hoàn chỉnh, đừng máy móc cắt vụn theo tầng.',
+  '7. Nếu nguyên văn có nội dung bạo lực, tương tác người lớn, sỉ nhục, thương bệnh, máu me hoặc nhạy cảm khác thì đừng bỏ qua, cũng đừng tô đẹp, chỉ dùng từ ngữ khách quan trung tính để ghi lại.',
+  '8. Đầu ra chỉ được là văn bản thuần, không thêm gạch đầu dòng, không đánh số, không giải thích cách làm của bạn.',
   '',
-  '禁止事项：',
-  '1. 不要使用"暧昧气氛"、"心理博弈"、"宣示主权"、"占有欲"、"言语挑衅"、"进行安抚"这类抽象标签。',
-  '2. 不要用"有人威胁了对方"、"双方达成条件"这种空话替代具体内容；能写明核心内容就写明。',
-  '3. 不要擅自补日期、时间、动机、立场或因果。原文没有，就保持没有。',
+  'Điều cấm:',
+  '1. Đừng dùng những nhãn trừu tượng như “bầu không khí mập mờ”, “đấu trí tâm lý”, “tuyên bố chủ quyền”, “ham muốn chiếm hữu”, “khiêu khích bằng lời”, “tiến hành vỗ về”.',
+  '2. Đừng dùng những câu rỗng như “có người đe dọa đối phương”, “hai bên đạt được điều kiện” thay cho nội dung cụ thể; ghi rõ được nội dung cốt lõi thì ghi rõ.',
+  '3. Đừng tự ý bổ sung ngày, giờ, động cơ, lập trường hay nhân quả. Nguyên văn không có thì giữ là không có.',
   '',
-  '输出目标与格式：',
-  '请严格按以下四个字段输出纯文本，每个字段一段文字，不编号不列表：',
+  'Mục tiêu và định dạng đầu ra:',
+  'Hãy xuất văn bản thuần nghiêm ngặt theo bốn trường sau, mỗi trường một đoạn văn, không đánh số không liệt kê:',
   '',
-  '主线：',
-  '（本次新增的剧情推进，与已有进展能衔接上）',
+  'Tuyến chính:',
+  '(Tiến triển cốt truyện mới thêm lần này, nối được với tiến triển đã có)',
   '',
-  '支线：',
-  '（本次支线进展）',
+  'Tuyến phụ:',
+  '(Tiến triển tuyến phụ lần này)',
   '',
-  '重要状态变化：',
-  '（仅列出本次新增/变更的状态——位置变化、身份变化、伤病、关系变化、信息获知等）',
+  'Thay đổi trạng thái quan trọng:',
+  '(Chỉ liệt kê các trạng thái mới thêm/thay đổi lần này — thay đổi vị trí, thay đổi thân phận, thương bệnh, thay đổi quan hệ, thông tin biết được...)',
   '',
-  '未解决事项：',
-  '（已有未解决事项中已完成的删除，本次新增的追加进来）',
+  'Việc chưa giải quyết:',
+  '(Việc chưa giải quyết đã có mà đã hoàn thành thì xóa, việc mới thêm lần này thì thêm vào)',
 ].join('\n');
 
 function cdBuildArchivePrompt(windowFloors, data, _s) {
@@ -89,39 +89,39 @@ function cdBuildArchivePrompt(windowFloors, data, _s) {
   const sys = [
     ARCHIVE_SYSTEM,
     '',
-    '**已有剧情进展（请做增量扩展，不要重复）**：',
-    existing.mainline ? `已知主线：${existing.mainline}` : '已知主线：（暂无，这是初见）',
-    existing.sideline ? `已知支线：${existing.sideline}` : '',
-    existing.states ? `已知重要状态：${existing.states}` : '',
-    existing.unresolved ? `已知未解决事项：${existing.unresolved}` : '',
+    '**Tiến triển cốt truyện đã có (hãy mở rộng tăng dần, đừng lặp lại)**:',
+    existing.mainline ? `Tuyến chính đã biết: ${existing.mainline}` : 'Tuyến chính đã biết: (chưa có, đây là lần đầu)',
+    existing.sideline ? `Tuyến phụ đã biết: ${existing.sideline}` : '',
+    existing.states ? `Trạng thái quan trọng đã biết: ${existing.states}` : '',
+    existing.unresolved ? `Việc chưa giải quyết đã biết: ${existing.unresolved}` : '',
   ].filter(Boolean).join('\n');
   const usr = [
-    `本次新增楼层：\n${scene}`,
+    `Các tầng mới thêm lần này:\n${scene}`,
     '',
-    '请输出：主线、支线、重要状态变化、未解决事项',
+    'Hãy xuất: Tuyến chính, Tuyến phụ, Thay đổi trạng thái quan trọng, Việc chưa giải quyết',
   ].join('\n');
   return [
     { role: 'system', content: sys },
     { role: 'user', content: usr },
-    { role: 'assistant', content: '主线：' },
+    { role: 'assistant', content: 'Tuyến chính:' },
   ];
 }
 
-/** 解析剧情档案的四个字段 */
+/** Phân tích bốn trường của hồ sơ cốt truyện */
 function parseArchiveJson(text) {
   const raw = String(text || '').trim();
-  // 按四个标签切分
-  const re = /(?:^|\n)(主线|支线|重要状态变化|未解决事项)[：:]([\s\S]*?)(?=(?:\n主线|\n支线|\n重要状态变化|\n未解决事项)[：:]|$)/g;
+  // Cắt theo bốn nhãn
+  const re = /(?:^|\n)(主线|支线|重要状态变化|未解决事项|Tuyến chính|Tuyến phụ|Thay đổi trạng thái quan trọng|Việc chưa giải quyết)[：:]([\s\S]*?)(?=(?:\n主线|\n支线|\n重要状态变化|\n未解决事项|\nTuyến chính|\nTuyến phụ|\nThay đổi trạng thái quan trọng|\nViệc chưa giải quyết)[：:]|$)/g;
   let mainline = '', sideline = '', states = '', unresolved = '';
   let match;
   while ((match = re.exec(raw)) !== null) {
     const label = match[1].trim();
     const body  = match[2].trim();
     switch (label) {
-      case '主线': mainline = body; break;
-      case '支线': sideline = body; break;
-      case '重要状态变化': states = body; break;
-      case '未解决事项': unresolved = body; break;
+      case 'Tuyến chính': mainline = body; break;
+      case 'Tuyến phụ': sideline = body; break;
+      case 'Thay đổi trạng thái quan trọng': states = body; break;
+      case 'Việc chưa giải quyết': unresolved = body; break;
     }
   }
   return { mainline, sideline, states, unresolved };
@@ -130,19 +130,19 @@ function cdBuildRelationPrompt(windowFloors, data, _s) {
   const known = Object.keys(data.diaries);
   const scene = windowFloors.map(m => `[#${m.message_id} ${m.name}] ${m.message}`).join('\n\n');
   const sys = [
-    '你是一个角色关系分析员。阅读给定剧情片段, 提取角色之间的"单向主观关系"。',
-    '要求:',
-    '- 单向主观: from 看 to 的关系(from 如何看待 to)。A看B 和 B看A 可能不同, 请分别各记一条。',
-    '- 只分析有名有戏份的角色之间的关系, 忽略纯路人。',
-    '- 不要包含用户/玩家角色。',
-    '- type: 用简短词概括关系性质(如"挚友""暗恋""敌视""主仆""警惕""依赖")。',
-    '- attitude: 情感倾向, 只能是 "positive"(友好/亲近)、"negative"(敌对/排斥)、"neutral"(中立) 之一。',
-    '- note: 一句话说明(20字以内)。',
-    known.length ? `已知角色: ${known.join('、')}` : '',
-    '严格只输出 JSON, 格式:',
-    '{"relations":[{"from":"A","to":"B","type":"关系性质","attitude":"positive","note":"简短说明"}]}',
+    'Bạn là người phân tích quan hệ nhân vật. Đọc đoạn cốt truyện được cho, trích xuất “quan hệ chủ quan một chiều” giữa các nhân vật.',
+    'Yêu cầu:',
+    '- Chủ quan một chiều: quan hệ from nhìn to (from nhìn nhận to thế nào). A nhìn B và B nhìn A có thể khác nhau, hãy ghi riêng mỗi chiều một mục.',
+    '- Chỉ phân tích quan hệ giữa các nhân vật có tên có vai diễn, bỏ qua người qua đường thuần túy.',
+    '- Đừng bao gồm nhân vật người dùng/người chơi.',
+    '- type: dùng từ ngắn khái quát tính chất quan hệ (như “bạn thân”, “thầm thương”, “thù địch”, “chủ tớ”, “cảnh giác”, “phụ thuộc”).',
+    '- attitude: khuynh hướng cảm xúc, chỉ được là một trong "positive" (thân thiện/gần gũi), "negative" (thù địch/bài xích), "neutral" (trung lập).',
+    '- note: một câu thuyết minh (trong 20 chữ).',
+    known.length ? `Nhân vật đã biết: ${known.join(', ')}` : '',
+    'Chỉ xuất JSON nghiêm ngặt, định dạng:',
+    '{"relations":[{"from":"A","to":"B","type":"Tính chất quan hệ","attitude":"positive","note":"Thuyết minh ngắn"}]}',
   ].filter(Boolean).join('\n');
-  const usr = `本次剧情片段:\n${scene}\n\n请输出关系 JSON。`;
+  const usr = `Đoạn cốt truyện lần này:\n${scene}\n\nHãy xuất JSON quan hệ.`;
   return [
     { role: 'system', content: JAILBREAK + '\n\n' + sys },
     { role: 'user', content: usr },
@@ -150,9 +150,9 @@ function cdBuildRelationPrompt(windowFloors, data, _s) {
   ];
 }
 
-/* ============================== JSON 鲁棒解析 ============================== */
+/* ============================== Phân tích JSON vững chắc ============================== */
 
-/** 转义 JSON 字符串内部的换行/制表等非法字符 */
+/** Thoát các ký tự không hợp lệ như xuống dòng/tab bên trong chuỗi JSON */
 function sanitizeJsonString(s) {
   let out = '';
   let inStr3 = false;
@@ -175,7 +175,7 @@ function sanitizeJsonString(s) {
   return out;
 }
 
-/** 从 startIdx 扫描提取所有完整的 { ... } 顶层对象 */
+/** Quét từ startIdx để trích mọi object { ... } cấp cao nhất hoàn chỉnh */
 function scanObjects(t, startIdx) {
   const results = [];
   let depth = 0;
@@ -215,7 +215,7 @@ function parseDiaryJson(text) {
   const arrIdx = t.indexOf('[', key >= 0 ? key : 0);
   const npcs = scanObjects(t, arrIdx >= 0 ? arrIdx + 1 : 0).filter(o => o && o.name);
   if (npcs.length) return npcs;
-  throw new Error('日记JSON解析失败, 原话: ' + String(text).slice(0, 150));
+  throw new Error('Phân tích JSON nhật ký thất bại, nguyên văn: ' + String(text).slice(0, 150));
 }
 
 function parseRelationJson(text) {
@@ -228,5 +228,5 @@ function parseRelationJson(text) {
   const arrIdx = t.indexOf('[', key >= 0 ? key : 0);
   const rels = scanObjects(t, arrIdx >= 0 ? arrIdx + 1 : 0).filter(o => o && o.from && o.to);
   if (rels.length) return rels;
-  throw new Error('关系JSON解析失败, 原话: ' + String(text).slice(0, 150));
+  throw new Error('Phân tích JSON quan hệ thất bại, nguyên văn: ' + String(text).slice(0, 150));
 }

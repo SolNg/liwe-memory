@@ -1,22 +1,22 @@
 // ============================================================
-// 角色日记 插件 v2.0.0 — 日记引擎 (核心流程)
-// 路径: SillyTavern/extensions/character-diary/engine.js
+// Plugin Nhật ký nhân vật v2.0.0 — Engine nhật ký (quy trình cốt lõi)
+// Đường dẫn: SillyTavern/extensions/character-diary/engine.js
 // ============================================================
 'use strict';
 
-/** 互斥锁 — 防止并发生成导致数据损坏 */
+/** Khóa loại trừ — tránh tạo đồng thời làm hỏng dữ liệu */
 let cdBusy = false;
-let cdPending = false;  // 当锁住时又收到触发信号, 标记"完成后再跑一轮"
+let cdPending = false;  // Khi đang khóa mà lại nhận tín hiệu kích hoạt, đánh dấu “xong thì chạy thêm một vòng”
 
 /**
- * 执行一次日记 + 关系生成。
+ * Thực hiện một lần tạo nhật ký + quan hệ.
  * @param {{ manual?: boolean, silent?: boolean }} opts
- *   manual: true = 用户手动触发, 即使 enabled=false 也运行
- *   silent: true = 不弹 toastr 提示 (用于自动触发)
+ *   manual: true = người dùng kích hoạt thủ công, dù enabled=false vẫn chạy
+ *   silent: true = không bật thông báo toastr (dùng cho kích hoạt tự động)
  */
 async function cdRunDiary({ manual = false, silent = false, extraFloors = null } = {}) {
   if (cdBusy) {
-    if (manual) { toastr.info('正在写, 请稍候'); cdPending = true; }
+    if (manual) { toastr.info('Đang viết, vui lòng chờ'); cdPending = true; }
     return;
   }
 
@@ -25,7 +25,7 @@ async function cdRunDiary({ manual = false, silent = false, extraFloors = null }
 
   let data = await cdGetData();
   
-  // 如果自动触发已传入了预计算的楼层，直接使用
+  // Nếu kích hoạt tự động đã truyền vào các tầng tính sẵn thì dùng thẳng
   let windowFloors;
   if (extraFloors && Array.isArray(extraFloors) && extraFloors.length) {
     windowFloors = extraFloors;
@@ -34,7 +34,7 @@ async function cdRunDiary({ manual = false, silent = false, extraFloors = null }
   }
 
   if (!windowFloors.length) {
-    if (manual && !silent) toastr.info('没有新楼层需要写日记');
+    if (manual && !silent) toastr.info('Không có tầng mới cần viết nhật ký');
     return;
   }
 
@@ -43,9 +43,9 @@ async function cdRunDiary({ manual = false, silent = false, extraFloors = null }
 
   cdBusy = true;
   try {
-    if (!silent) toastr.info(`开始写日记 (${windowFloors.length} 个新楼层)...`);
+    if (!silent) toastr.info(`Bắt đầu viết nhật ký (${windowFloors.length} tầng mới)...`);
 
-    // 并发: 日记 + 关系 + 剧情档案
+    // Đồng thời: nhật ký + quan hệ + hồ sơ cốt truyện
     const diaryMsgs    = cdBuildDiaryPrompt(windowFloors, data, s);
     const relMsgs      = cdBuildRelationPrompt(windowFloors, data, s);
     const archiveMsgs  = cdBuildArchivePrompt(windowFloors, data, s);
@@ -59,73 +59,73 @@ async function cdRunDiary({ manual = false, silent = false, extraFloors = null }
     let relOk     = false;
     let archiveOk = false;
 
-    // 处理日记
+    // Xử lý nhật ký
     if (diaryRes.status === 'fulfilled') {
       try {
         const npcs = parseDiaryJson(diaryRes.value);
         data = mergeDiaries(data, npcs, windowFloors, s);
         diaryOk = true;
       } catch (e) {
-        cdWarn('日记解析失败', e);
-        if (manual) toastr.error('日记生成失败: ' + e.message);
+        cdWarn('Phân tích nhật ký thất bại', e);
+        if (manual) toastr.error('Tạo nhật ký thất bại: ' + e.message);
       }
     } else {
-      if (manual) toastr.error('日记请求失败: ' + (diaryRes.reason && diaryRes.reason.message));
+      if (manual) toastr.error('Request nhật ký thất bại: ' + (diaryRes.reason && diaryRes.reason.message));
     }
 
-    // 处理关系 (独立)
+    // Xử lý quan hệ (độc lập)
     if (relRes.status === 'fulfilled') {
       try {
         const rels = parseRelationJson(relRes.value);
         data = mergeRelations(data, rels);
         relOk = true;
       } catch (e) {
-        cdWarn('关系解析失败', e);
-        if (manual) toastr.warning('关系更新失败 (日记不受影响)');
+        cdWarn('Phân tích quan hệ thất bại', e);
+        if (manual) toastr.warning('Cập nhật quan hệ thất bại (nhật ký không bị ảnh hưởng)');
       }
     } else {
-      if (manual) toastr.warning('关系请求失败 (日记不受影响)');
+      if (manual) toastr.warning('Request quan hệ thất bại (nhật ký không bị ảnh hưởng)');
     }
 
-    // 处理剧情档案 (独立)
+    // Xử lý hồ sơ cốt truyện (độc lập)
     if (archiveRes.status === 'fulfilled') {
       try {
         const arc = parseArchiveJson(archiveRes.value);
         if (!data.archive) data.archive = Object.assign({}, emptyData().archive);
-        // 只有 AI 返回了非空内容才覆盖对应字段，否则保留旧值
+        // Chỉ khi AI trả về nội dung không rỗng mới ghi đè trường tương ứng, nếu không thì giữ giá trị cũ
         if (arc.mainline !== undefined && arc.mainline !== '')   data.archive.mainline   = arc.mainline;
         if (arc.sideline !== undefined && arc.sideline !== '')   data.archive.sideline   = arc.sideline;
         if (arc.states !== undefined && arc.states !== '')       data.archive.states     = arc.states;
         if (arc.unresolved !== undefined && arc.unresolved !== '') data.archive.unresolved = arc.unresolved;
         archiveOk = true;
       } catch (e) {
-        cdWarn('剧情档案解析失败', e);
-        if (manual) toastr.warning('剧情档案更新失败 (日记不受影响)');
+        cdWarn('Phân tích hồ sơ cốt truyện thất bại', e);
+        if (manual) toastr.warning('Cập nhật hồ sơ cốt truyện thất bại (nhật ký không bị ảnh hưởng)');
       }
     } else {
-      if (manual) toastr.warning('剧情档案请求失败 (日记不受影响)');
+      if (manual) toastr.warning('Request hồ sơ cốt truyện thất bại (nhật ký không bị ảnh hưởng)');
     }
 
-    // 保存
+    // Lưu
     if (diaryOk || relOk || archiveOk) {
       await cdSaveData(data);
       if (diaryOk) await cdSyncWorldbook(data);
       if (!silent) {
         const tips = [];
-        if (diaryOk) tips.push('日记已更新');
-        if (relOk) tips.push('关系已更新');
-        if (archiveOk) tips.push('剧情档案已更新');
+        if (diaryOk) tips.push('Đã cập nhật nhật ký');
+        if (relOk) tips.push('Đã cập nhật quan hệ');
+        if (archiveOk) tips.push('Đã cập nhật hồ sơ cốt truyện');
         toastr.success(tips.join(' · '));
       } else {
-        cdLog('自动日记完成');
+        cdLog('Nhật ký tự động hoàn tất');
       }
     }
   } catch (e) {
-    cdWarn('runDiary 异常', e);
-    if (manual && !silent) toastr.error('写日记失败: ' + e.message);
+    cdWarn('runDiary lỗi', e);
+    if (manual && !silent) toastr.error('Viết nhật ký thất bại: ' + e.message);
   } finally {
     cdBusy = false;
-    // 如果在忙期间又收到触发, 再跑一次
+    // Nếu trong lúc bận lại nhận kích hoạt thì chạy thêm một lần
     if (cdPending) {
       cdPending = false;
       cdRunDiary({ manual: false, silent: true });
@@ -134,8 +134,8 @@ async function cdRunDiary({ manual = false, silent = false, extraFloors = null }
 }
 
 /**
- * 消息接收回调: 基于 lastTriggerFloor 计数器做"每N楼触发一次"
- * ★ 直接计算 windowFloors 传入 cdRunDiary，避免内部检查不一致
+ * Callback nhận tin nhắn: dựa trên bộ đếm lastTriggerFloor để “mỗi N tầng kích hoạt một lần”
+ * ★ Tính thẳng windowFloors truyền vào cdRunDiary, tránh kiểm tra nội bộ không nhất quán
  */
 async function cdOnMessageReceived() {
   const s = cdGetSettings();
@@ -148,14 +148,14 @@ async function cdOnMessageReceived() {
   const lastTriggerFloor = data._lastTriggerFloor ?? -1;
   const interval = s.interval || 5;
   
-  cdLog('自动触发检查: 当前最大楼层', currentMaxFloor, '上次触发楼层', lastTriggerFloor, '间隔', interval);
+  cdLog('Kiểm tra kích hoạt tự động: tầng lớn nhất hiện tại', currentMaxFloor, 'tầng kích hoạt lần trước', lastTriggerFloor, 'khoảng cách', interval);
   
   const aiFloors = await cdGetAiFloors();
   const newFloors = aiFloors.filter(m => m.message_id > lastTriggerFloor);
   const newAiCount = newFloors.length;
   
   if (newAiCount >= interval) {
-    cdLog('自动触发: 新增AI楼层数', newAiCount, '>=', interval);
+    cdLog('Kích hoạt tự động: số tầng AI mới thêm', newAiCount, '>=', interval);
     
     let windowFloors = newFloors;
     if (windowFloors.length > (s.maxWindowFloors || 40))
@@ -168,7 +168,7 @@ async function cdOnMessageReceived() {
 }
 
 /**
- * 消息删除/撤回回调
+ * Callback xóa/thu hồi tin nhắn
  */
 async function cdOnMessageDeleted(floor) {
   await cdRollbackFrom(floor);

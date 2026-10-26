@@ -1,112 +1,127 @@
-# LIWE · RAG 记忆引擎（角色日记 / Character Diary）
+# LIWE · Engine ký ức RAG (Nhật ký nhân vật / Character Diary)
 
-一个功能强大的 **SillyTavern（ST）剧情记忆管理扩展插件**。核心是 **角色日记** 与 **剧情档案** 两套自动记忆系统，外加向量检索注入，让你的 AI 角色真正"记住"你的故事——今天发生的事、几天前埋的伏笔、你对每个角色的态度与羁绊，都不会忘。此外还有一套让角色"活起来"的玩法模块（游戏存档盘 / 世界论坛 / 真图生图 / 小剧场 等）。
+> 🇻🇳 **Bản dịch tiếng Việt.** Đây là bản sao được dịch sang tiếng Việt từ dự án gốc
+> [zhaoyichan/SillyTavern-Plugin-HCDiary](https://github.com/zhaoyichan/SillyTavern-Plugin-HCDiary),
+> đã được tác giả gốc cho phép. Toàn bộ giao diện, chú thích mã, nhật ký log và các prompt gửi cho AI
+> đều đã được dịch sang tiếng Việt; mọi bản quyền về ý tưởng và mã nguồn thuộc về tác giả gốc.
+> Các trình phân tích (regex) vẫn nhận cả nhãn tiếng Trung lẫn tiếng Việt, nên dữ liệu cũ vẫn đọc được.
 
-> 别名：HCDiary · `character-diary` · LIWE · RAG 记忆引擎
-> 运行环境：SillyTavern / Tauri Tavern（安卓客户端）
-> 当前版本：v2.17.0
+Một **extension quản lý ký ức cốt truyện cho SillyTavern (ST)** rất mạnh. Cốt lõi là hai hệ thống ký ức tự động **Nhật ký nhân vật** và **Hồ sơ cốt truyện**, cộng thêm tiêm ký ức bằng truy xuất vector, giúp nhân vật AI của bạn thật sự “nhớ” câu chuyện — chuyện hôm nay, phục bút cài từ mấy hôm trước, thái độ và mối ràng buộc của bạn với từng nhân vật, đều không bị quên. Ngoài ra còn có một bộ module giải trí giúp nhân vật “sống dậy” (đĩa lưu game / Diễn đàn Thế giới / tạo ảnh thật / tiểu kịch trường...).
+
+> Tên khác: HCDiary · `character-diary` · LIWE · Engine ký ức RAG
+> Môi trường chạy: SillyTavern / Tauri Tavern (client Android)
+> Phiên bản hiện tại: v2.17.0
 
 ---
 
-## 🧠 核心·自动记忆引擎
+## 🧠 Cốt lõi · Engine ký ức tự động
 
-每次 AI 回复后，插件自动分析新增剧情，把当下发生的事沉淀成**长期记忆**，并随时按需注入回对话，让 AI 记得住、回得对。
+Sau mỗi lần AI trả lời, plugin tự phân tích phần cốt truyện mới, lắng đọng những gì vừa xảy ra thành **ký ức dài hạn**, và tiêm lại vào hội thoại khi cần, để AI nhớ được, trả lời đúng.
 
-| 模块 | 说明 |
+| Module | Mô tả |
 |------|------|
-| 📜 **剧情档案** | 自动维护主线 / 支线 / 状态 / 未解决事项 + 自定义追踪项，串起整段剧情的脉络（详见下） |
-| 📖 **角色日记** | 为每个有戏份的角色写第一人称「活人感」私密日记，记录心情/态度/心声/关键事件（详见下） |
-| 🧠 **RAG 记忆检索** | 日记 + 档案向量化，命中相关回忆再注入 AI，不把整块上下文全塞给它 |
-| 🔗 **人物关系网** | 提取角色间单向主观关系（友好/排斥/中立），随剧情自动演进 |
+| 📜 **Hồ sơ cốt truyện** | Tự duy trì tuyến chính / tuyến phụ / trạng thái / việc chưa giải quyết + mục theo dõi tùy chỉnh, xâu chuỗi mạch truyện (xem bên dưới) |
+| 📖 **Nhật ký nhân vật** | Viết nhật ký riêng tư ngôi thứ nhất “như người sống” cho mỗi nhân vật có vai diễn, ghi tâm trạng/thái độ/tiếng lòng/sự kiện then chốt (xem bên dưới) |
+| 🧠 **Truy xuất ký ức RAG** | Vector hóa nhật ký + hồ sơ, chỉ tiêm những hồi ức liên quan, không nhồi cả khối ngữ cảnh cho AI |
+| 🔗 **Mạng quan hệ nhân vật** | Trích xuất quan hệ chủ quan một chiều giữa các nhân vật (thân thiện/bài xích/trung lập), tự tiến hóa theo cốt truyện |
 
 ---
 
-## 📜 剧情档案
+## 📜 Hồ sơ cốt truyện
 
-把散落在一句句对白里的剧情主线，整理成能回看、能续上的**剧情脉络**。
+Sắp xếp mạch truyện rải rác trong từng câu thoại thành **mạch cốt truyện** có thể xem lại, viết tiếp.
 
-- **多栏位结构**：主线 / 支线 / 重要状态 / 未解决事项 + 你可自定义的追踪项（如实力、装备、重要人物线索等）。
-- **增量追加**：每次有新剧情就**追加**，从不断章取义覆盖已发生的事。
-- **时间线视图**：主线/支线/状态按【时间】标记分类展示，一目了然；多行批量删除稳定可靠。
-- **自动压缩「瘦身不截肢」**：剧情积压太多时可一键压缩——所有**已发生的事无论多小都不丢**，只精简冗余描述，目标长度约原文一半。
-- **未解决事项真覆盖**：AI 判断已了结就清空，不再越积越多。
-- **自定义追踪项**：任意建立你想盯住的字段，AI 持续往里记账。
-
----
-
-## 📖 角色日记
-
-给每场戏里的角色写"人的日记"，而不是冷冰冰的记录。
-
-- **活人感私密日记**：第一人称心里话，直白剖白 + 反差幼稚（活人味），像真人深夜写下的内心实况，而非剧情汇报。
-- **全知禁令**：只写角色亲历与当前所知，避免"上帝视角"剧透未来。
-- **情绪反应落地**：把剧情中戳到角色的关键事，按该角色性格写出真实反应——改观、记仇、心动、后怕、感激、吐槽，都可能是他/她当下的想法。
-- **简单 / 复杂双档**：精简版百字内只写心声 + 最要紧的一件事 + 记忆点；复杂版 300~520 字铺开。同一套人味写法、仅字数档不同。
-- **记忆回环**：可跨篇勾连之前的记忆点，让日记有"时间感"。
+- **Cấu trúc nhiều ô**: tuyến chính / tuyến phụ / trạng thái quan trọng / việc chưa giải quyết + mục theo dõi bạn tự định nghĩa (như thực lực, trang bị, manh mối nhân vật quan trọng...).
+- **Thêm tăng dần**: có cốt truyện mới thì **thêm vào**, không bao giờ cắt xén ghi đè những gì đã xảy ra.
+- **Chế độ dòng thời gian**: tuyến chính/tuyến phụ/trạng thái hiển thị phân loại theo dấu 【thời gian】, nhìn là hiểu; xóa hàng loạt nhiều dòng ổn định.
+- **Tự nén “thu gọn không cắt chi”**: khi cốt truyện dồn quá nhiều có thể nén một chạm — mọi **chuyện đã xảy ra dù nhỏ đến đâu cũng không mất**, chỉ tinh gọn mô tả thừa, độ dài mục tiêu khoảng một nửa nguyên văn.
+- **Việc chưa giải quyết ghi đè thật**: AI thấy đã xong thì xóa, không còn càng dồn càng nhiều.
+- **Mục theo dõi tùy chỉnh**: tùy ý tạo trường bạn muốn theo dõi, AI liên tục ghi chép vào đó.
 
 ---
 
-## 🎯 记忆检索与注入
+## 📖 Nhật ký nhân vật
 
-- **RAG 向量检索**：剧情档案 / 角色日记向量化，命中相关回忆再注入，不把整块上下文全塞给 AI。
-- **Rerank 重排**：OpenAI 兼容 `/rerank` 端点重排召回结果，失败自动降级（不阻塞主流程）。
-- **按登场人物注入**：正则识别剧情中出现的角色，只推这些角色的近期日记，精准而不冗余。
-- **注入位置可选**：开头 / 对话中 / 末尾。
-- **选择性记忆（白名单）**：只记「重点角色」，避免无关配角堆积。
-- **合并式单路 API + 动态提示词**：角色日记 / 剧情档案合并为一次调用，提示词按你勾选的模块动态拼接（省 token、更快）；人物关系可独立开关。
-- **总结瘦身（省 token）**：总结时默认只发送要总结的楼层，不额外带历史日记/档案/世界书；想要历史上下文可在设置「总结时注入历史」手动开启。
-- **数据保护**：检测日记骤减会自动从本地备份补回，防丢记忆。
-- **全量迁移**：一键导出/导入聊天记录 + 插件回忆，换设备不丢记忆。
+Viết “nhật ký của con người” cho các nhân vật trong mỗi cảnh, chứ không phải bản ghi lạnh lùng.
+
+- **Nhật ký riêng tư như người sống**: lời trong lòng ngôi thứ nhất, giãi bày thẳng thắn + tương phản ngây ngô (hơi thở người sống), như một con người thật viết lúc nửa đêm, chứ không phải báo cáo cốt truyện.
+- **Lệnh cấm toàn tri**: chỉ viết những gì nhân vật tự trải qua và đang biết, tránh “góc nhìn thượng đế” tiết lộ tương lai.
+- **Phản ứng cảm xúc thực tế**: những chuyện then chốt chạm đến nhân vật sẽ được viết thành phản ứng thật theo tính cách — đổi cách nhìn, ghi thù, rung động, sợ hãi muộn, biết ơn, than vãn, đều có thể là suy nghĩ lúc đó của họ.
+- **Hai mức đơn giản / phức tạp**: bản gọn dưới trăm chữ chỉ viết tiếng lòng + chuyện quan trọng nhất + điểm ghi nhớ; bản phức tạp trải ra 300~520 chữ. Cùng một cách viết có hơi người, chỉ khác số chữ.
+- **Vòng lặp ký ức**: có thể liên kết các điểm ký ức từ những bài trước, cho nhật ký có “cảm giác thời gian”.
 
 ---
 
-## 🎲 其他玩法模块
+## 🎯 Truy xuất và tiêm ký ức
 
-记忆之外，插件还带一整套让角色"活起来"的可选玩法，想用哪个开哪个：
+- **Truy xuất vector RAG**: vector hóa hồ sơ cốt truyện / nhật ký nhân vật, trúng hồi ức liên quan mới tiêm, không nhồi cả khối ngữ cảnh cho AI.
+- **Xếp hạng lại Rerank**: dùng endpoint `/rerank` tương thích OpenAI để xếp lại kết quả, thất bại thì tự hạ cấp (không chặn luồng chính).
+- **Tiêm theo nhân vật xuất hiện**: regex nhận diện nhân vật xuất hiện trong cốt truyện, chỉ đẩy nhật ký gần đây của họ, chính xác mà không dư thừa.
+- **Vị trí tiêm tùy chọn**: đầu / giữa hội thoại / cuối.
+- **Ký ức chọn lọc (danh sách trắng)**: chỉ ghi “nhân vật trọng điểm”, tránh vai phụ không liên quan dồn đống.
+- **API một đường gộp + prompt động**: nhật ký nhân vật / hồ sơ cốt truyện gộp thành một lần gọi, prompt ghép động theo các module bạn chọn (tiết kiệm token, nhanh hơn); quan hệ nhân vật bật tắt riêng được.
+- **Tóm tắt tinh gọn (tiết kiệm token)**: khi tóm tắt mặc định chỉ gửi các tầng cần tóm tắt, không kèm nhật ký/hồ sơ/sổ thế giới lịch sử; muốn ngữ cảnh lịch sử thì bật thủ công “Tiêm lịch sử khi tóm tắt” trong cài đặt.
+- **Bảo vệ dữ liệu**: phát hiện nhật ký giảm đột ngột sẽ tự khôi phục từ bản sao lưu cục bộ, chống mất ký ức.
+- **Di chuyển toàn bộ**: xuất/nhập lịch sử trò chuyện + hồi ức plugin một chạm, đổi thiết bị không mất ký ức.
 
-| 模块 | 一句话 |
+---
+
+## 🎲 Các module giải trí khác
+
+Ngoài ký ức, plugin còn kèm cả bộ cách chơi tùy chọn giúp nhân vật “sống dậy”, muốn dùng cái nào bật cái đó:
+
+| Module | Một câu |
 |------|--------|
-| 🎮 **游戏存档盘** | RPG 式存档：按角色存快照、星标置顶、每消息快捷存档、导出 zip/导入，随时回档（v2.16+） |
-| 🌐 **世界论坛 · 跨世界社区** | 不同故事世界的角色互发帖、评论串门、跨世界吃醋，贴吧神帖风 |
-| 🎨 **真图生图** | 图库/相册/看图、12 套绘图风格、可编辑提示词，让角色"看得见" |
-| 🎭 **小剧场** | 让 AI 把某段剧情/场景用一段沉浸式表演呈现出来，可收藏 |
-| 🔔 **回复提示音** | AI 回复完/总结后自动响铃，可自定义音频与触发时机 |
-| 📋 **LIWE 情报表** | 自定义角色状态/履历填表，自动快照演进 |
-| 🔎 **章回导航** | 自动生成章回标题，翻阅历史版本 |
-| 📚 **世界书联动** | 别名字符归一化，精准命中原绑定角色的世界书条目 |
+| 🎮 **Đĩa lưu game** | Lưu kiểu RPG: chụp nhanh theo nhân vật, đánh sao ghim, lưu nhanh từ mỗi tin nhắn, xuất zip/nhập, quay về bất cứ lúc nào (v2.16+) |
+| 🌐 **Diễn đàn Thế giới · Cộng đồng xuyên thế giới** | Nhân vật của các thế giới truyện khác nhau đăng bài, bình luận qua lại, ghen tuông xuyên thế giới, phong cách bài hot diễn đàn |
+| 🎨 **Tạo ảnh thật** | Thư viện ảnh/album/xem ảnh, 12 bộ phong cách vẽ, prompt chỉnh sửa được, để nhân vật “được nhìn thấy” |
+| 🎭 **Tiểu kịch trường** | Để AI trình diễn một đoạn cốt truyện/cảnh thành một màn biểu diễn nhập vai, có thể lưu lại |
+| 🔔 **Âm báo trả lời** | AI trả lời xong/tóm tắt xong tự reo chuông, tùy chỉnh âm thanh và thời điểm kích hoạt |
+| 📋 **Bảng tình báo LIWE** | Điền bảng trạng thái/lý lịch nhân vật tùy chỉnh, tự chụp nhanh quá trình tiến hóa |
+| 🔎 **Điều hướng chương hồi** | Tự tạo tiêu đề chương hồi, lật xem phiên bản lịch sử |
+| 📚 **Liên động sổ thế giới** | Chuẩn hóa ký tự biệt danh, trúng chính xác mục sổ thế giới gắn với nhân vật gốc |
 
-> 另有一批趣味符契：命运骰、好感引擎、弹幕、伏笔、平行世界、前端生成等，作为独立的「仪式注入台」可手动开启（详见插件内）。
+> Còn một loạt “phù khế” vui: xúc xắc vận mệnh, engine hảo cảm, bình luận chạy (đạn mạc), phục bút, thế giới song song, tạo front-end..., là “Đài tiêm nghi thức” độc lập có thể bật thủ công (xem trong plugin).
 
 ---
 
-## 📥 安装方法
+## 📥 Cài đặt
 
 ```bash
 cd SillyTavern/extensions/
-git clone https://github.com/zhaoyichan/SillyTavern-Plugin-HCDiary.git character-diary
+git clone https://github.com/SolNg/liwe-memory.git character-diary
 ```
 
-重启 SillyTavern 后，在扩展菜单中点击「角色日记」即可使用。
+Hoặc trong SillyTavern: **Extensions → Install extension**, dán `https://github.com/SolNg/liwe-memory`.
+
+Khởi động lại SillyTavern, rồi bấm “Nhật ký nhân vật” trong menu extension để dùng.
 
 ---
 
-## 🚀 使用快速上手
+## 🚀 Bắt đầu nhanh
 
-1. 右上角滑块进入**设置**，配置 API 来源（默认跟随酒馆）。
-2. 正常聊天，AI 回复后插件自动写日记、更新剧情档案（或手动点「写日记」）。
-3. 「浏览」看角色日记；「时间线」看剧情档案演进；「关系」看人物关系网。
-4. 玩够了主线，去「存档」存个档、进「论坛」让各世界角色串门互动。
-5. 「日志」面板可查每次调用的 Token 与费用。
-
----
-
-## 💾 数据存储
-
-- 日记 / 关系 / 剧情档案存在 ST 的 `chatMetadata.extensions['character-diary']`，随聊天自动保存，并有 Chat Variables 双轨兜底。
-- 存档存在 IndexedDB（`cd-save-db`），告别 localStorage 容量瓶颈。
-- 世界论坛的世界/帖子/角色/称号存在 localStorage（`cd-forum-data`），换卡不丢。
-- 可用「全量迁移」在换设备时完整搬迁记忆。
+1. Thanh trượt góc trên phải vào **Cài đặt**, cấu hình nguồn API (mặc định theo SillyTavern).
+2. Trò chuyện bình thường, sau khi AI trả lời plugin tự viết nhật ký, cập nhật hồ sơ cốt truyện (hoặc bấm “Viết nhật ký” thủ công).
+3. “Duyệt” để xem nhật ký nhân vật; “Dòng thời gian” để xem tiến hóa hồ sơ cốt truyện; “Quan hệ” để xem mạng quan hệ nhân vật.
+4. Chơi đủ tuyến chính rồi thì vào “Lưu trữ” lưu một bản, vào “Diễn đàn” để nhân vật các thế giới qua lại tương tác.
+5. Bảng “Nhật ký log” xem được token và chi phí của mỗi lần gọi.
 
 ---
 
-*随插件迭代持续更新。*
+## 💾 Lưu trữ dữ liệu
+
+- Nhật ký / quan hệ / hồ sơ cốt truyện lưu trong `chatMetadata.extensions['character-diary']` của ST, tự lưu theo cuộc trò chuyện, có Chat Variables làm đường dự phòng thứ hai.
+- Bản lưu nằm trong IndexedDB (`cd-save-db`), tạm biệt giới hạn dung lượng localStorage.
+- Thế giới/bài viết/nhân vật/danh hiệu của Diễn đàn Thế giới lưu trong localStorage (`cd-forum-data`), đổi thẻ không mất.
+- Có thể dùng “Di chuyển toàn bộ” khi đổi thiết bị để chuyển trọn ký ức.
+
+> ⚠️ Lưu ý cho người dùng chuyển từ bản gốc tiếng Trung: một số khóa dữ liệu nội bộ (ví dụ tên phiên trợ lý nhỏ, nhãn trạng thái nhóm chat) đã được dịch, nên một vài lịch sử điện thoại/nhóm chat của bản gốc có thể không hiện lại. Nhật ký, quan hệ và hồ sơ cốt truyện không bị ảnh hưởng.
+
+---
+
+## 🙏 Ghi công
+
+- Tác giả gốc: **zhaoyichan** — [SillyTavern-Plugin-HCDiary](https://github.com/zhaoyichan/SillyTavern-Plugin-HCDiary)
+- Bản dịch tiếng Việt: **SolNg** — [liwe-memory](https://github.com/SolNg/liwe-memory), được thực hiện với sự cho phép của tác giả gốc.
+
+*Sẽ tiếp tục cập nhật theo các phiên bản plugin.*

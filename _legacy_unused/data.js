@@ -1,10 +1,10 @@
 // ============================================================
-// 角色日记 插件 v2.0.0 — 数据合并 & 世界书同步
-// 路径: SillyTavern/extensions/character-diary/data.js
+// Plugin Nhật ký nhân vật v2.0.0 — Gộp dữ liệu & đồng bộ sổ thế giới
+// Đường dẫn: SillyTavern/extensions/character-diary/data.js
 // ============================================================
 'use strict';
 
-/* ============================== settings 读写 ============================== */
+/* ============================== Đọc ghi settings ============================== */
 function cdGetSettings() {
   if (!extension_settings[PLUGIN_ID]) extension_settings[PLUGIN_ID] = Object.assign({}, DEFAULT_SETTINGS);
   return extension_settings[PLUGIN_ID];
@@ -15,7 +15,7 @@ function cdSaveSettings(patch) {
   saveSettingsDebounced();
 }
 
-/* ============================== 本局数据 (chat variables) ============================== */
+/* ============================== Dữ liệu ván này (chat variables) ============================== */
 async function cdGetData() {
   try {
     const c = (await getVariables({ type: 'chat' })) || {};
@@ -29,11 +29,11 @@ async function cdSaveData(data) {
   try {
     await insertOrAssignVariables({ [PLUGIN_ID]: data }, { type: 'chat' });
   } catch (e) {
-    cdWarn('保存本局数据失败', e);
+    cdWarn('Lưu dữ liệu ván này thất bại', e);
   }
 }
 
-/* ============================== 楼层工具 ============================== */
+/* ============================== Công cụ tầng ============================== */
 function getLastFloorId() {
   try {
     const id = getLastMessageId();
@@ -57,13 +57,13 @@ async function cdGetAiFloors() {
   }
 }
 
-/** 返回上次记录之后新增的 AI 楼层 */
+/** Trả về các tầng AI mới thêm sau lần ghi trước */
 async function cdGetNewFloors(data) {
   const floors = await cdGetAiFloors();
   return floors.filter(m => m.message_id > (data.lastFloor ?? -1));
 }
 
-/* ============================== 合并: 日记 ============================== */
+/* ============================== Gộp: nhật ký ============================== */
 function mergeDiaries(data, npcs, windowFloors, s) {
   const topFloor = windowFloors.length
     ? windowFloors[windowFloors.length - 1].message_id
@@ -74,16 +74,16 @@ function mergeDiaries(data, npcs, windowFloors, s) {
     const name = String(npc.name).trim();
     if (!name) continue;
 
-    // 别名归并
+    // Quy gộp biệt danh
     let mainName = name;
     for (const [m, al] of Object.entries(data.aliases || {})) {
       if ((al || []).includes(name) || m === name) { mainName = m; break; }
     }
 
-    // 路人转正逻辑
+    // Logic người qua đường lên chính thức
     const isMinor = npc.is_minor === true;
     if (data.promoted[mainName]) {
-      // 已是正式角色
+      // Đã là nhân vật chính thức
     } else if (!isMinor) {
       data.promoted[mainName] = true;
     } else {
@@ -91,11 +91,11 @@ function mergeDiaries(data, npcs, windowFloors, s) {
       if (data.cameo[mainName] >= (s.cameoThreshold || 3)) {
         data.promoted[mainName] = true;
       } else {
-        continue; // 路人, 跳过
+        continue; // Người qua đường, bỏ qua
       }
     }
 
-    // 补充别名
+    // Bổ sung biệt danh
     const incomingAliases = Array.isArray(npc.aliases) ? npc.aliases.map(String) : [];
     data.aliases[mainName] = Array.from(new Set([...(data.aliases[mainName] || []), ...incomingAliases]));
 
@@ -116,7 +116,7 @@ function mergeDiaries(data, npcs, windowFloors, s) {
   return data;
 }
 
-/* ============================== 合并: 关系 ============================== */
+/* ============================== Gộp: quan hệ ============================== */
 function mergeRelations(data, relList) {
   if (!data.relations) data.relations = {};
   for (const r of relList) {
@@ -134,7 +134,7 @@ function mergeRelations(data, relList) {
   return data;
 }
 
-/* ============================== 世界书同步 ============================== */
+/* ============================== Đồng bộ sổ thế giới ============================== */
 function sanitizeName(name) {
   let n = String(name || 'character');
   n = n.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '');
@@ -167,12 +167,12 @@ async function cdEnsureWorldbook() {
 
 function formatEntryForWb(npc, e) {
   return [
-    `【${npc}的日记 · ${e.date || '第' + e.turn + '楼'}】`,
+    `【Nhật ký của ${npc} · ${e.date || 'Tầng ' + e.turn + ''}】`,
     e.entry,
-    e.mood ? `(心情: ${e.mood})` : '',
-    e.attitude_to_user ? `(对用户: ${e.attitude_to_user})` : '',
-    e.secret ? `(心声: ${e.secret})` : '',
-    (e.key_events && e.key_events.length) ? `(关键事件: ${e.key_events.join('; ')})` : '',
+    e.mood ? `(Tâm trạng: ${e.mood})` : '',
+    e.attitude_to_user ? `(Với người dùng: ${e.attitude_to_user})` : '',
+    e.secret ? `(Tiếng lòng: ${e.secret})` : '',
+    (e.key_events && e.key_events.length) ? `(Sự kiện then chốt: ${e.key_events.join('; ')})` : '',
   ].filter(Boolean).join('\n');
 }
 
@@ -186,7 +186,7 @@ async function cdSyncWorldbook(data) {
     const keys = Array.from(new Set([npc, ...aliases]));
     const last = list[list.length - 1];
     entries.push({
-      name: `${npc} · 最新日记`,
+      name: `${npc} · Nhật ký mới nhất`,
       enabled: true,
       strategy: { type: 'constant', keys: [], keys_secondary: { logic: 'and_any', keys: [] }, scan_depth: 'same_as_global' },
       position: { type: 'at_depth', role: 'system', depth: 4, order: order++ },
@@ -195,7 +195,7 @@ async function cdSyncWorldbook(data) {
     const archive = list.slice(0, -1);
     if (archive.length) {
       entries.push({
-        name: `${npc} · 日记存档`,
+        name: `${npc} · Kho lưu nhật ký`,
         enabled: true,
         strategy: { type: 'selective', keys, keys_secondary: { logic: 'and_any', keys: [] }, scan_depth: 'same_as_global' },
         position: { type: 'at_depth', role: 'system', depth: 4, order: order++ },
@@ -206,7 +206,7 @@ async function cdSyncWorldbook(data) {
   await createOrReplaceWorldbook(name, entries);
 }
 
-/** 楼层回滚: 当聊天楼层被删除/撤回时, 移除 >= floor 的日记条目 */
+/** Cuộn lại tầng: khi tầng trò chuyện bị xóa/thu hồi, gỡ các mục nhật ký >= floor */
 async function cdRollbackFrom(floor) {
   const data = await cdGetData();
   let changed = false;

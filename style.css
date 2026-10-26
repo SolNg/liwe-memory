@@ -1,12 +1,12 @@
 /* ============================================================
-   角色日记 插件 v2.0.0 — 样式表 2.0
-   路径: extensions/character-diary/style.css
+   Plugin Nhật ký nhân vật v2.0.0 — Bảng style 2.0
+   Đường dẫn: extensions/character-diary/style.css
    ============================================================ */
 
 /* ─── Root ─── */
-/* ★ 样式隔离：插件面板固定悬浮在酒馆之上，必须显式重置酒馆主题可能继承给本面板的
-      文字阴影 / 滤镜 / 描边等效果，否则日间模式下文字会带上酒馆的阴影/模糊。
-      （此规则日夜间统一生效，不影响夜间原有观感） */
+/* ★ Cách ly style: bảng plugin nổi cố định trên SillyTavern, bắt buộc phải reset tường minh các hiệu ứng
+      đổ bóng chữ / filter / viền... mà chủ đề SillyTavern có thể kế thừa cho bảng này, nếu không ở chế độ ngày chữ sẽ dính bóng/mờ của SillyTavern.
+      (Quy tắc này có hiệu lực thống nhất cả ngày lẫn đêm, không ảnh hưởng cảm quan vốn có ban đêm) */
 .cd-root {
   --cd-fs: 1; 
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
@@ -19,7 +19,7 @@
     0 2px 8px rgba(0,0,0,0.04),
     0 8px 32px rgba(0,0,0,0.06),
     0 24px 64px rgba(0,0,0,0.08);
-  /* ── 重置酒馆继承的视觉效果 ── */
+  /* ── Reset hiệu ứng thị giác kế thừa từ SillyTavern ── */
   text-shadow: none !important;
   -webkit-text-stroke-width: 0 !important;
   -webkit-text-stroke-color: transparent !important;
@@ -53,7 +53,7 @@
   border: 1px solid rgba(180, 150, 120, 0.12);
 }
 
-/* ─── 标题栏 ─── */
+/* ─── Thanh tiêu đề ─── */
 .cd-header {
   display: flex;
   align-items: center;
@@ -103,7 +103,7 @@
   color: #c84632;
 }
 
-/* ─── 工具栏 ─── */
+/* ─── Thanh công cụ ─── */
 .cd-toolbar {
   display: flex;
   gap: 2px;
@@ -144,7 +144,7 @@
 
 .cd-tb-danger:hover { color: #c84632 !important; background: rgba(200, 70, 50, 0.06) !important; }
 
-/* ─── 内容区 ─── */
+/* ─── Vùng nội dung ─── */
 .cd-body, .cd-settings-panel {
   flex: 1;
   overflow-y: auto;
@@ -159,7 +159,7 @@
   background: rgba(180, 150, 120, 0.18);
 }
 
-/* ─── 空状态 ─── */
+/* ─── Trạng thái trống ─── */
 .cd-empty {
   display: flex;
   flex-direction: column;
@@ -179,15 +179,15 @@
 .cd-empty p { margin: 0; font-size: calc(0.76rem * var(--cd-fs, 1)); color: #6b5344; }
 .cd-empty-sub { font-size: calc(0.68rem * var(--cd-fs, 1)); opacity: 0.4; color: #8b7355; }
 
-/* ─── 日记卡片：角色主视觉墙（网格）＋ 堆叠拟物卡 ─── */
-/* ①主视觉墙：角色卡网格排布，未展开时是「封面磁贴」 */
+/* ─── Thẻ nhật ký: bức tường thị giác chính của nhân vật (lưới) + thẻ xếp chồng mô phỏng ─── */
+/* ① Bức tường thị giác chính: thẻ nhân vật xếp lưới, khi chưa mở là “ô gạch bìa” */
 .cd-card-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
   gap: 12px;
   align-items: start;
 }
-/* ④堆叠拟物卡：底层偏移衬卡 + 顶层封面，hover 展开堆叠 */
+/* ④ Thẻ xếp chồng mô phỏng: thẻ lót lệch ở dưới + bìa ở trên, hover mở chồng thẻ */
 .cd-diary-card {
   position: relative;
   border-radius: 12px;
@@ -200,7 +200,7 @@
     0 6px 18px rgba(0,0,0,0.04);
   transition: transform 0.22s cubic-bezier(.2,.7,.3,1.2), box-shadow 0.22s ease;
 }
-/* 未展开 = 封面磁贴（矮条） */
+/* Chưa mở = ô gạch bìa (thanh thấp) */
 .cd-diary-card:not([open]) {
   cursor: pointer;
 }
@@ -216,7 +216,7 @@
   transform: translateY(-1px) scale(0.99);
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
-/* ④多层衬卡：未展开封面叠一层「身后卡」，营造扑克叠放感 */
+/* ④ Thẻ lót nhiều lớp: bìa chưa mở chồng thêm một lớp “thẻ phía sau”, tạo cảm giác xếp bài tây */
 .cd-diary-card:not([open])::after {
   content: '';
   position: absolute;
@@ -231,7 +231,7 @@
   transform: translate(5px, 7px);
   background: rgba(240, 230, 214, 0.7);
 }
-/* 展开：横跨整行，日记流铺开阅读 */
+/* Mở ra: trải ngang cả hàng, luồng nhật ký trải ra để đọc */
 .cd-diary-card[open] {
   grid-column: 1 / -1;
   grid-row: span 2;
@@ -240,7 +240,7 @@
   border-color: rgba(180, 150, 120, 0.20);
 }
 
-/* 封面摘要：默认状态像「标签条」 */
+/* Tóm tắt bìa: trạng thái mặc định như “dải nhãn” */
 .cd-card-summary {
   display: flex;
   align-items: center;
@@ -255,7 +255,7 @@
 .cd-card-summary:hover { background: rgba(245, 238, 228, 0.55); }
 .cd-card-summary::-webkit-details-marker { display: none; }
 
-/* 未展开的封面磁贴：更高、名字更醒目，像「角色标签牌」 */
+/* Ô gạch bìa chưa mở: cao hơn, tên nổi bật hơn, như “bảng tên nhân vật” */
 .cd-diary-card:not([open]) .cd-card-summary {
   flex-direction: column;
   align-items: flex-start;
@@ -272,7 +272,7 @@
   opacity: 0.55;
 }
 .cd-diary-card:not([open]) .cd-card-meta::after {
-  content: '▸ 展开';
+  content: '▸ Mở ra';
   font-size: calc(0.56rem * var(--cd-fs, 1));
   opacity: 0.5;
   margin-left: auto;
@@ -293,7 +293,7 @@
 }
 .cd-card-body { padding: 0 12px 12px; }
 
-/* ─── 条目 ─── */
+/* ─── Mục ─── */
 .cd-entry {
   padding: 6px 0;
   border-bottom: 1px solid rgba(180, 150, 120, 0.05);
@@ -323,7 +323,7 @@
 }
 .cd-entry-events { font-size: calc(0.65rem * var(--cd-fs, 1)); opacity: 0.45; color: #8b7355; }
 
-/* ─── 关系 ─── */
+/* ─── Quan hệ ─── */
 .cd-graph-text { display: flex; flex-direction: column; gap: 8px; }
 .cd-graph-node {
   padding: 10px 14px;
@@ -357,7 +357,7 @@
 }
 .cd-graph-note { font-size: calc(0.62rem * var(--cd-fs, 1)); opacity: 0.4; }
 
-/* ─── 剧情档案 ─── */
+/* ─── Hồ sơ cốt truyện ─── */
 .cd-archive { display: flex; flex-direction: column; gap: 8px; }
 .cd-archive-section {
   padding: 10px 14px;
@@ -383,7 +383,7 @@
   color: #4a3a2a;
 }
 
-/* ─── 按钮 ─── */
+/* ─── Nút ─── */
 .cd-btn-primary, .cd-btn-secondary, .cd-btn-danger {
   display: inline-block;
   width: auto;
@@ -421,11 +421,11 @@
 }
 .cd-btn-danger:active { transform: scale(0.95); opacity: 0.85; }
 
-/* ─── 工具栏按钮反馈 ─── */
+/* ─── Phản hồi nút thanh công cụ ─── */
 .cd-tb-btn:active { transform: scale(0.93); opacity: 0.7; }
 .cd-header-btn:active { transform: scale(0.9); opacity: 0.6; }
 
-/* ─── 更多菜单（收纳低频/工具/信息入口） ─── */
+/* ─── Menu thêm (chứa lối vào ít dùng/công cụ/thông tin) ─── */
 .cd-toolbar { position: relative; }
 .cd-tb-more { position: relative; }
 .cd-tb-more.cd-tb-active { background: #cdb69b !important; color: #fff !important; }
@@ -475,7 +475,7 @@
 .cd-night .cd-more-item i { color: #8b7d6a; }
 .cd-night .cd-more-item:hover { background: rgba(255,255,255,0.06); }
 
-/* ─── 设置 ─── */
+/* ─── Cài đặt ─── */
 .cd-settings-h2 {
   margin: 0 0 10px;
   font-size: calc(0.82rem * var(--cd-fs, 1));
@@ -529,7 +529,7 @@
 .cd-input[type="number"] { width: 56px; text-align: center; }
 .cd-hint { font-size: calc(0.6rem * var(--cd-fs, 1)); color: #8b7355; opacity: 0.5; flex: 1; text-align: right; }
 
-/* ─── 浏览工具栏（搜索+筛选） ─── */
+/* ─── Thanh công cụ duyệt (tìm kiếm + lọc) ─── */
 .cd-browse-toolbar {
   display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;
 }
@@ -550,15 +550,15 @@
   background: #fde68a; color: #92400e; padding: 0 2px; border-radius: 2px;
 }
 
-/* ─── 写日记按钮组 ─── */
+/* ─── Nhóm nút viết nhật ký ─── */
 .cd-write-compress-info {
   display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: calc(0.65rem * var(--cd-fs, 1)); color: #6b5a48;
   padding: 6px 10px; border-radius: 6px; background: rgba(248,243,237,0.4);
 }
 .cd-write-compress-info span { opacity: 0.6; }
 
-/* ─── 时间线 ─── */
-/* ─── 名场面收藏 ─── */
+/* ─── Dòng thời gian ─── */
+/* ─── Bộ sưu tập cảnh kinh điển ─── */
 .cd-entry-fav-btn {
   background: none; border: none; cursor: pointer; padding: 0 4px;
   font-size: calc(0.7rem * var(--cd-fs, 1)); color: #8b7355; opacity: 0.25; transition: all 0.2s;
@@ -567,7 +567,7 @@
 .cd-entry-fav-btn:hover { opacity: 0.8; color: #f59e0b; }
 .cd-entry-fav-btn.cd-fav-active { opacity: 0.9; color: #f59e0b; }
 
-/* ─── 成就徽章 ─── */
+/* ─── Huy hiệu thành tựu ─── */
 .cd-achievements { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
 .cd-achievement {
   display: flex; align-items: center; gap: 5px; padding: 4px 8px;
@@ -582,7 +582,7 @@
 .cd-achievement.cd-ach-locked { opacity: 0.4; }
 .cd-ach-icon { font-size: calc(0.75rem * var(--cd-fs, 1)); width: 16px; text-align: center; }
 
-/* ─── 心情热力图 ─── */
+/* ─── Bản đồ nhiệt tâm trạng ─── */
 .cd-heatmap { display: flex; flex-direction: column; gap: 3px; padding: 4px 0; }
 .cd-heatmap-row { display: flex; align-items: center; gap: 4px; }
 .cd-heatmap-label {
@@ -595,7 +595,7 @@
 }
 .cd-heatmap-cell:hover { transform: scale(1.3); z-index: 1; }
 
-/* ─── 浏览概要（心情+随机） ─── */
+/* ─── Tóm tắt duyệt (tâm trạng + ngẫu nhiên) ─── */
 .cd-browse-overview {
   display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;
 }
@@ -615,19 +615,19 @@
 .cd-browse-heat .cd-heatmap-label { width: 30px; font-size: calc(0.5rem * var(--cd-fs, 1)); }
 .cd-browse-heat .cd-heatmap-cell { width: 8px; height: 8px; }
 
-/* ─── 浏览概览说明文字 ─── */
+/* ─── Chữ thuyết minh tổng quan duyệt ─── */
 .cd-browse-overview-desc {
   font-size: calc(0.58rem * var(--cd-fs, 1)); color: #8b7355; opacity: 0.5; margin: 0 0 4px; line-height: 1.3;
 }
 
-/* ─── 占卜/剧场/报告结果 ─── */
+/* ─── Kết quả bói toán/kịch trường/báo cáo ─── */
 .cd-tarot-result, .cd-theater-result, .cd-report-result {
   padding: 8px 10px; border-radius: 6px; font-size: calc(0.7rem * var(--cd-fs, 1)); line-height: 1.6;
   background: rgba(248,243,237,0.3); border: 1px solid rgba(180,150,120,0.06);
   color: #4a3a2a; white-space: pre-wrap;
 }
 
-/* ─── 章回标题 ─── */
+/* ─── Tiêu đề chương hồi ─── */
 .cd-chapter-title {
   font-size: calc(0.85rem * var(--cd-fs, 1)); font-weight: 700; color: #4a3a2a; text-align: center;
   padding: 10px 14px; margin-bottom: 10px; border-radius: 8px;
@@ -635,7 +635,7 @@
   letter-spacing: 0.05em; line-height: 1.5;
 }
 
-/* ─── 地点频率条 ─── */
+/* ─── Thanh tần suất địa điểm ─── */
 .cd-location-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; margin-bottom: 8px; padding: 6px 8px; border-radius: 8px; background: rgba(248,243,237,0.3); border: 1px solid rgba(180,150,120,0.06); }
 .cd-location-label { font-size: calc(0.6rem * var(--cd-fs, 1)); font-weight: 600; color: #8b7355; margin-right: 4px; flex-shrink: 0; }
 .cd-location-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; font-size: calc(0.6rem * var(--cd-fs, 1)); background: rgba(180,150,120,0.08); position: relative; overflow: hidden; }
@@ -643,12 +643,12 @@
 .cd-location-name { color: #4a3a2a; font-weight: 500; position: relative; }
 .cd-location-count { color: #8b7355; opacity: 0.6; font-size: calc(0.55rem * var(--cd-fs, 1)); position: relative; }
 
-/* ─── 撤销栏 ─── */
+/* ─── Thanh hoàn tác ─── */
 .cd-undo-bar { display: flex; align-items: center; gap: 8px; padding: 6px 10px; margin-bottom: 8px; border-radius: 8px; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.15); font-size: calc(0.68rem * var(--cd-fs, 1)); color: #92400e; }
 .cd-undo-bar span { flex: 1; display: flex; align-items: center; gap: 4px; }
 .cd-undo-bar .cd-btn-secondary { font-size: calc(0.65rem * var(--cd-fs, 1)); padding: 3px 10px; min-width: auto; }
 
-/* ─── 楼层管理器 ─── */
+/* ─── Trình quản lý tầng ─── */
 .cd-floor-panel { padding: 2px; }
 .cd-floor-header { margin-bottom: 8px; }
 .cd-floor-pages { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 6px 0; font-size: calc(0.68rem * var(--cd-fs, 1)); color: #6b5a48; }
@@ -663,7 +663,7 @@
 .cd-floor-preview { color: #8b7355; opacity: 0.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
 .cd-floor-badge { font-size: calc(0.55rem * var(--cd-fs, 1)); padding: 1px 6px; border-radius: 4px; background: rgba(34,197,94,0.1); color: #16a34a; flex-shrink: 0; }
 
-/* ─── 娱乐页面 ─── */
+/* ─── Trang giải trí ─── */
 .cd-egg { padding: 4px; }
 .cd-egg-section { margin-bottom: 8px; }
 .cd-egg-fav-list { display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; }
@@ -673,7 +673,7 @@
 .cd-egg-fav-date { font-size: calc(0.58rem * var(--cd-fs, 1)); color: #8b7355; opacity: 0.5; }
 .cd-egg-fav-text { font-size: calc(0.66rem * var(--cd-fs, 1)); color: #6b5a48; line-height: 1.4; }
 
-/* ─── 时间线 ─── */
+/* ─── Dòng thời gian ─── */
 .cd-timeline { position: relative; padding-left: 20px; }
 .cd-timeline::before {
   content: ''; position: absolute; left: 7px; top: 0; bottom: 0;
@@ -711,14 +711,14 @@
 .cd-tl-secret { font-size: calc(0.65rem * var(--cd-fs, 1)); color: #8b7355; font-style: italic; margin-top: 2px; }
 .cd-tl-events { font-size: calc(0.6rem * var(--cd-fs, 1)); color: #8b7355; opacity: 0.5; margin-top: 2px; }
 
-/* ─── 心情图表 ─── */
+/* ─── Biểu đồ tâm trạng ─── */
 .cd-mood-chart { padding: 4px 0; }
 .cd-mood-legend { display: flex; flex-wrap: wrap; gap: 2px 6px; margin-top: 4px; }
 .cd-stats-empty { text-align: center; font-size: calc(0.68rem * var(--cd-fs, 1)); color: #8b7355; opacity: 0.5; padding: 12px; }
 .cd-stats-section { margin-bottom: 12px; }
 .cd-stats-section .cd-write-title { margin-bottom: 6px; }
 
-/* ─── 随机回顾 ─── */
+/* ─── Hồi tưởng ngẫu nhiên ─── */
 .cd-random-entry {
   padding: 10px; border-radius: 8px; background: rgba(248,243,237,0.4);
   border: 1px solid rgba(180,150,120,0.08);
@@ -730,13 +730,13 @@
 .cd-random-body { font-size: calc(0.7rem * var(--cd-fs, 1)); line-height: 1.5; color: #4a3a2a; }
 .cd-random-secret { font-size: calc(0.65rem * var(--cd-fs, 1)); color: #8b7355; font-style: italic; margin-top: 2px; }
 
-/* ─── 力导向图 ─── */
+/* ─── Đồ thị lực hướng ─── */
 .cd-force-section { margin-bottom: 8px; }
 .cd-force-section .cd-write-title { margin-bottom: 6px; }
 .cd-force-legend { display: flex; gap: 10px; margin-top: 4px; font-size: calc(0.6rem * var(--cd-fs, 1)); color: #6b5a48; }
 .cd-force-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 2px; vertical-align: middle; }
 
-/* ─── 心理补全 ─── */
+/* ─── Bổ sung tâm lý ─── */
 .cd-entry-psyche-btn {
   background: none; border: none; cursor: pointer; padding: 0 4px;
   font-size: calc(0.65rem * var(--cd-fs, 1)); color: #8b5cf6; opacity: 0.3; transition: opacity 0.15s;
@@ -750,7 +750,7 @@
 .cd-entry-psyche-label { font-size: calc(0.62rem * var(--cd-fs, 1)); color: #8b5cf6; font-weight: 500; margin-bottom: 4px; }
 .cd-entry-psyche-text { font-size: calc(0.68rem * var(--cd-fs, 1)); line-height: 1.6; color: #4a3a2a; font-style: italic; }
 
-/* ─── 编辑按钮 ─── */
+/* ─── Nút sửa ─── */
 .cd-entry-edit-btn {
   background: none; border: none; cursor: pointer; padding: 0 4px; margin-left: auto;
   font-size: calc(0.65rem * var(--cd-fs, 1)); color: #8b7355; opacity: 0.3; transition: opacity 0.15s;
@@ -758,7 +758,7 @@
 }
 .cd-entry-edit-btn:hover { opacity: 0.8; color: #4a3a2a; }
 
-/* ─── 单条日记：重新生成 / 删除 ─── */
+/* ─── Nhật ký đơn: tạo lại / xóa ─── */
 .cd-entry-regen-btn {
   background: none; border: none; cursor: pointer; padding: 0 4px;
   font-size: calc(0.65rem * var(--cd-fs, 1)); color: #3b82f6; opacity: 0.35; transition: opacity 0.15s;
@@ -774,14 +774,14 @@
 .cd-night .cd-entry-regen-btn { color: #60a5fa; }
 .cd-night .cd-entry-del-btn { color: #f87171; }
 
-/* ─── 时间线条目（勾选框容器）─── */
-/* 时间线条目不再显示单条删除按钮，仅通过顶部「批量管理」多选删除。
-   .cd-tl-actions 仅承载批量管理模式下的勾选框。 */
+/* ─── Mục dòng thời gian (vùng chứa ô chọn) ─── */
+/* Mục dòng thời gian không hiển thị nút xóa từng mục nữa, chỉ xóa nhiều mục qua “Quản lý hàng loạt” ở trên cùng.
+   .cd-tl-actions chỉ chứa ô chọn ở chế độ quản lý hàng loạt. */
 .cd-tl-actions {
   position: absolute; top: 6px; right: 8px; display: flex; gap: 4px;
 }
 
-/* ─── 时间线批量管理 ─── */
+/* ─── Quản lý hàng loạt dòng thời gian ─── */
 .cd-tl-manage-bar {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   padding: 6px 10px; margin-bottom: 8px; border-radius: 8px;
@@ -795,11 +795,11 @@
 .cd-tl-manage-ops { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .cd-tl-sel-count { font-size: calc(0.6rem * var(--cd-fs, 1)); color: #6b5a48; margin-right: 2px; }
 
-/* 勾选框默认隐藏，进入管理模式才显示 */
+/* Ô chọn mặc định ẩn, vào chế độ quản lý mới hiện */
 .cd-tl-cb-wrap { display: none; align-items: center; }
 .cd-tl-cb { width: 15px; height: 15px; cursor: pointer; accent-color: #ef4444; }
 
-/* 管理模式：显示勾选框 + 卡片可勾选态 */
+/* Chế độ quản lý: hiện ô chọn + trạng thái thẻ có thể chọn */
 .cd-tl-managing .cd-tl-cb-wrap { display: inline-flex; }
 .cd-tl-managing .cd-tl-card { cursor: pointer; }
 .cd-tl-managing .cd-tl-card:has(.cd-tl-cb:checked) {
@@ -809,7 +809,7 @@
 .cd-night .cd-tl-sel-count { color: #c4b8a5; }
 .cd-night .cd-tl-manage-btn.cd-tl-manage-active { background: #cdb69b; color: #1a1a2e !important; }
 
-/* ─── 编辑器模态 ─── */
+/* ─── Modal trình sửa ─── */
 .cd-editor-overlay {
   position: fixed !important; inset: 0 !important; z-index: 2000003 !important;
   background: rgba(0,0,0,0.3); display: flex;
@@ -848,7 +848,7 @@
 .cd-editor-footer .cd-btn-primary,
 .cd-editor-footer .cd-btn-secondary { margin-top: 0; }
 
-/* ─── 写日记面板 ─── */
+/* ─── Bảng viết nhật ký ─── */
 .cd-write-panel { padding: 8px 4px; }
 .cd-write-section { margin-bottom: 12px; }
 .cd-write-title { margin: 0 0 4px; font-size: calc(0.78rem * var(--cd-fs, 1)); font-weight: 600; color: #4a3a2a; display: flex; align-items: center; gap: 6px; }
@@ -859,7 +859,7 @@
 .cd-write-range .cd-input { width: 80px; }
 .cd-write-range-sep { font-size: calc(0.72rem * var(--cd-fs, 1)); color: #8b7355; }
 
-/* ─── 统计视图 ─── */
+/* ─── View thống kê ─── */
 .cd-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
 .cd-stat-card {
   padding: 12px; border-radius: 10px; background: rgba(248,243,237,0.6);
@@ -872,11 +872,11 @@
 .cd-stats-detail p { margin: 4px 0; font-size: calc(0.68rem * var(--cd-fs, 1)); color: #6b5a48; }
 .cd-stat-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #cdb69b; margin-right: 6px; vertical-align: middle; }
 
-/* ─── 导出面板 ─── */
+/* ─── Bảng xuất ─── */
 .cd-export-panel { padding: 8px 4px; }
 .cd-export-panel .cd-write-title { margin-bottom: 6px; }
 
-/* ─── 日志 ─── */
+/* ─── Nhật ký log ─── */
 .cd-log-stats-container { margin-bottom: 10px; }
 .cd-log-stats { display: flex; flex-wrap: wrap; gap: 4px; }
 .cd-log-stat-card { flex: 1; min-width: 80px; padding: 6px 8px; border-radius: 6px; background: rgba(248,243,237,0.3); border: 1px solid rgba(180,150,120,0.06); text-align: center; }
@@ -930,7 +930,7 @@
   background: #fff;
 }
 
-/* ─── 全屏 ─── */
+/* ─── Toàn màn hình ─── */
 .cd-root.cd-fullscreen {
   top: 0 !important;
   left: 0 !important;
@@ -949,7 +949,7 @@
   border-radius: 0 !important;
 }
 
-/* ─── 移动端 ─── */
+/* ─── Thiết bị di động ─── */
 @media (max-width: 640px) {
   .cd-sheet {
     width: 94vw;
@@ -966,7 +966,7 @@
 }
 
 /* ============================================================
-   夜间模式
+   Chế độ đêm
    ============================================================ */
 .cd-night .cd-sheet {
   background: #1a1a2e;
@@ -1103,7 +1103,7 @@
 .cd-night .cd-slider:before { background: #d4c9b8; }
 .cd-night .cd-switch input:checked + .cd-slider { background: #cdb69b; }
 
-/* ---- 浏览概览折叠(A3) ---- */
+/* ---- Gập tổng quan duyệt (A3) ---- */
 .cd-browse-overview-wrap {
   margin-bottom: 10px;
   border: 1px solid rgba(180,150,120,0.07);
@@ -1124,7 +1124,7 @@
 .cd-browse-overview-wrap .cd-browse-overview { margin-bottom: 0; padding: 4px 10px 10px; }
 
 
-/* ---- 单条日记折叠结构 ---- */
+/* ---- Cấu trúc gập nhật ký đơn ---- */
 .cd-entry-summary {
   display: flex; align-items: center; gap: 6px;
   cursor: pointer; user-select: none;
@@ -1146,7 +1146,7 @@
 .cd-entry-summary .cd-entry-date { font-weight: 600; color: #6b5a48; }
 
 
-/* ---- C7: 单条日记卡片分区 ---- */
+/* ---- C7: Phân vùng thẻ nhật ký đơn ---- */
 .cd-entry {
   padding: 8px 10px;
   margin: 5px 0;
@@ -1160,7 +1160,7 @@
 .cd-card-body .cd-entry:last-child { border-bottom: 1px solid rgba(180,150,120,0.10); }
 
 
-/* ---- D8: 查看更早按钮 ---- */
+/* ---- D8: Nút xem cũ hơn ---- */
 .cd-load-more {
   display: block; width: 100%; margin-top: 8px; padding: 6px;
   font-size: calc(0.62rem * var(--cd-fs, 1)); color: #6b5a48;
@@ -1171,7 +1171,7 @@
 .cd-load-more:hover { background: rgba(180,150,120,0.12); }
 
 
-/* ---- 名场面收藏折叠展开 ---- */
+/* ---- Gập mở bộ sưu tập cảnh kinh điển ---- */
 .cd-egg-fav-list { max-height: none; overflow-y: visible; }
 .cd-egg-fav-item { padding: 6px 8px; border-radius: 6px; background: rgba(248,243,237,0.3); border: 1px solid rgba(180,150,120,0.08); }
 .cd-egg-fav-summary { display: flex; align-items: center; gap: 6px; cursor: pointer; list-style: none; }
@@ -1183,7 +1183,7 @@
 .cd-egg-fav-events { font-size: calc(0.62rem * var(--cd-fs, 1)); color: #8b7355; opacity: 0.6; margin-top: 3px; }
 
 
-/* ---- 注入位置按钮 ---- */
+/* ---- Nút vị trí tiêm ---- */
 .cd-injpos-btn {
   padding: 3px 12px;
   font-size: calc(0.62rem * var(--cd-fs, 1));
@@ -1200,7 +1200,7 @@
 }
 
 
-/* ---- 注入策略折叠高级区 ---- */
+/* ---- Vùng nâng cao gập của chiến lược tiêm ---- */
 .cd-settings-collapse {
   border: 1px solid rgba(180,150,120,0.12);
   border-radius: 8px; margin: 4px 0;
@@ -1218,7 +1218,7 @@
   color: #7a5c34; font-size: calc(0.66rem * var(--cd-fs, 1));
 }
 
-/* ─── 快速开始引导条（设置面板顶部） ─── */
+/* ─── Thanh hướng dẫn bắt đầu nhanh (trên cùng bảng cài đặt) ─── */
 .cd-setup-banner {
   border: 1px solid rgba(205,182,155,0.35);
   border-radius: 12px;
@@ -1236,7 +1236,7 @@
 .cd-setup-step { display: flex; align-items: flex-start; gap: 6px; font-size: calc(0.63rem * var(--cd-fs, 1)); color: #6b5a48; line-height: 1.45; }
 .cd-setup-dot { flex-shrink: 0; font-weight: 700; color: #a8824d; }
 .cd-setup-step.cd-setup-done .cd-setup-dot { color: #22c55e; }
-/* 快速开始里的默认功能说明 */
+/* Thuyết minh chức năng mặc định trong bắt đầu nhanh */
 .cd-setup-features {
   display: flex; flex-direction: column; gap: 4px;
   margin-top: 8px; padding-top: 8px;
@@ -1252,7 +1252,7 @@
 .cd-night .cd-setup-feature.cd-on { color: #67d8a5; }
 .cd-night .cd-setup-feature.cd-off { color: #9c8f7d; }
 
-/* 浏览空态引导里的默认功能说明 */
+/* Thuyết minh chức năng mặc định trong hướng dẫn trạng thái trống khi duyệt */
 .cdb-empty-guide-features {
   display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
   max-width: 320px; margin: 4px auto 12px;
@@ -1273,8 +1273,8 @@
 .cd-night .cdb-feat { background: rgba(255,255,255,0.04); color: #c4b8a5; }
 .cd-night .cdb-feat.on { color: #67d8a5; }
 
-/* ─── 新手提示卡片（各工具页顶部，默认折叠，老手可忽略）─── */
-/* 无彩色、中性灰高级风格 */
+/* ─── Thẻ gợi ý cho người mới (trên cùng mỗi trang công cụ, mặc định gập, người quen có thể bỏ qua) ─── */
+/* Phong cách cao cấp xám trung tính không màu */
 .cd-tip {
   border: 1px solid rgba(120,130,140,0.18);
   border-radius: 10px;
@@ -1288,7 +1288,7 @@
   color: #5c6b7a; list-style: none;
 }
 .cd-tip > summary::-webkit-details-marker { display: none; }
-/* 灰色线条灯泡（无彩色） */
+/* Bóng đèn nét xám (không màu) */
 .cd-tip > summary::before {
   content: '';
   width: 14px; height: 14px; flex-shrink: 0;
@@ -1296,13 +1296,13 @@
   opacity: 0.75;
 }
 .cd-tip > summary .cd-tip-toggle { margin-left: auto; font-size: calc(0.58rem * var(--cd-fs, 1)); opacity: 0.45; }
-.cd-tip[open] > summary .cd-tip-toggle:before { content: '▲ 收起'; }
-.cd-tip:not([open]) > summary .cd-tip-toggle:before { content: '▼ 展开'; }
+.cd-tip[open] > summary .cd-tip-toggle:before { content: '▲ Thu gọn'; }
+.cd-tip:not([open]) > summary .cd-tip-toggle:before { content: '▼ Mở ra'; }
 .cd-tip-body { padding: 4px 12px 10px; font-size: calc(0.62rem * var(--cd-fs, 1)); color: #4a4f58; line-height: 1.65; }
 .cd-tip-body p { margin: 4px 0; }
 .cd-tip-body .tip-step { display: flex; gap: 6px; margin: 3px 0; align-items: flex-start; }
 .cd-tip-body .tip-step b { color: #5c6b7a; flex-shrink: 0; }
-/* 警示图标/文字：中性灰描边，弱化刺眼红 */
+/* Biểu tượng/chữ cảnh báo: viền xám trung tính, làm dịu màu đỏ chói */
 .cd-tip-body .tip-warn { color: #8a6d5a; }
 .cd-tip-body .tip-warn i, .cd-tip-body .tip-warn .cd-tip-warn-ico { color: #a08d7d; opacity: 0.75; font-style: normal; }
 .cd-tip-body code { background: rgba(120,130,140,0.1); padding: 1px 5px; border-radius: 4px; font-size: calc(0.58rem * var(--cd-fs, 1)); }
@@ -1326,7 +1326,7 @@
 .cd-night .cd-setup-banner-title { color: #d4c9b8; }
 .cd-night .cd-setup-step { color: #c4b8a5; }
 
-/* ─── 浏览首页空态引导（新手第一眼） ─── */
+/* ─── Hướng dẫn trạng thái trống trang đầu duyệt (cái nhìn đầu tiên của người mới) ─── */
 .cdb-empty-guide {
   border: 1px solid rgba(205,182,155,0.3);
   border-radius: 14px;
@@ -1375,7 +1375,7 @@
 .cd-night .cdb-step-num { background: rgba(255,255,255,0.12); color: #e8dfd3; }
 .cd-night .cdb-empty-guide-icon i { color: #cdb69b; }
 
-/* ─── 自定义剧情追踪项（时间线顶部折叠面板） ─── */
+/* ─── Mục theo dõi cốt truyện tùy chỉnh (bảng gập trên cùng dòng thời gian) ─── */
 .cd-custom-panel {
   border: 1px solid rgba(168,85,247,0.25);
   border-radius: 8px; margin: 0 0 10px;
@@ -1402,17 +1402,17 @@
 .cd-night .cd-custom-head { color: #c084fc; }
 
 /* ══════════════════════════════════════════════════════════════
-   整体「高级化」润色补丁（覆盖基础样式，提升质感，不改结构）
+   Bản vá trau chuốt “cao cấp hóa” tổng thể (ghi đè style cơ bản, nâng chất cảm, không đổi cấu trúc)
    ══════════════════════════════════════════════════════════════ */
 
-/* ── 面板：更通透 + 精致阴影（仅日间，夜间另有覆盖） ── */
+/* ── Bảng: trong trẻo hơn + bóng tinh tế (chỉ ban ngày, ban đêm có ghi đè riêng) ── */
 .cd-root.cd-day .cd-sheet {
   background: linear-gradient(180deg, #fffdfa 0%, #faf6ef 100%);
   border: 1px solid rgba(180,150,120,0.10);
   border-radius: 18px;
 }
 
-/* ── 标题栏：更干净的米白，细腻底纹（仅日间） ── */
+/* ── Thanh tiêu đề: trắng ngà sạch hơn, vân nền tinh tế (chỉ ban ngày) ── */
 .cd-root.cd-day .cd-header {
   background: linear-gradient(180deg, #f5eee2 0%, #f0e8dc 100%);
   padding: 12px 16px;
@@ -1422,7 +1422,7 @@
   letter-spacing: 0.08em;
 }
 
-/* ── 工具栏按钮：更精致的胶囊造型 + 细腻动效（仅日间） ── */
+/* ── Nút thanh công cụ: tạo hình viên thuốc tinh tế hơn + hiệu ứng động tinh tế (chỉ ban ngày) ── */
 .cd-root.cd-day .cd-toolbar {
   padding: 7px 14px;
   background: rgba(248,243,237,0.65);
@@ -1440,7 +1440,7 @@
   box-shadow: 0 1px 4px rgba(160,132,98,0.35), inset 0 1px 0 rgba(255,255,255,0.25);
 }
 
-/* ── 主按钮：微渐变 + 柔和投影，精致却不喧宾夺主 ── */
+/* ── Nút chính: chuyển màu nhẹ + bóng đổ dịu, tinh tế mà không lấn át ── */
 .cd-root .cd-btn-primary {
   background: linear-gradient(180deg, #d6c0a3 0%, #bfa68a 100%);
   border-radius: 10px;
@@ -1448,7 +1448,7 @@
 }
 .cd-root .cd-btn-primary:hover { background: linear-gradient(180deg, #cdb69b 0%, #b8a088 100%); }
 
-/* ── 次级按钮 / 危险按钮：中性精致 ── */
+/* ── Nút phụ / nút nguy hiểm: trung tính tinh tế ── */
 .cd-root .cd-btn-secondary {
   border: 1px solid rgba(180,150,120,0.18);
   border-radius: 10px;
@@ -1458,7 +1458,7 @@
 .cd-root .cd-btn-secondary:hover { background: rgba(255,255,255,0.85); border-color: rgba(180,150,120,0.3); }
 .cd-root .cd-btn-danger { border-radius: 10px; }
 
-/* ── 日记卡片：柔和卡片 + 精致圆角（保留心情左边条） ── */
+/* ── Thẻ nhật ký: thẻ dịu + bo góc tinh tế (giữ thanh bên trái màu tâm trạng) ── */
 .cd-root .cd-diary-card {
   border-radius: 13px;
   border: 1px solid rgba(180,150,120,0.09);
@@ -1467,7 +1467,7 @@
 }
 .cd-root .cd-card-summary { padding: 11px 14px; }
 
-/* ── 单条日记：更柔和的展开卡片 ── */
+/* ── Nhật ký đơn: thẻ mở ra dịu hơn ── */
 .cd-root .cd-entry {
   border-radius: 11px;
   border: 1px solid rgba(180,150,120,0.07);
@@ -1476,17 +1476,17 @@
   box-shadow: 0 2px 10px rgba(180,150,120,0.08);
 }
 
-/* ── 分割线：更细腻，弱化生硬感 ── */
+/* ── Đường phân cách: tinh tế hơn, giảm cảm giác cứng ── */
 .cd-root .cd-write-divider {
   background: linear-gradient(90deg, rgba(180,150,120,0.06), rgba(180,150,120,0.14), rgba(180,150,120,0.06));
   height: 1px;
 }
 
-/* ── 时间线卡片：精致圆角 + 柔和边 ── */
+/* ── Thẻ dòng thời gian: bo góc tinh tế + viền dịu ── */
 .cd-root .cd-tl-card { border-radius: 11px; }
 .cd-root .cd-tl-dot { box-shadow: 0 0 0 2px #fcfaf6, 0 1px 2px rgba(0,0,0,0.08); }
 
-/* ── 设置折叠 / 提示卡：统一精致的圆角与留白 ── */
+/* ── Gập cài đặt / thẻ gợi ý: bo góc và khoảng trống tinh tế thống nhất ── */
 .cd-root .cd-settings-sub {
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1494,11 +1494,11 @@
 }
 .cd-root .cd-setup-banner, .cd-root .cd-tip { border-radius: 13px; }
 
-/* ── 滚动条：更细腻 ── */
+/* ── Thanh cuộn: tinh tế hơn ── */
 .cd-root .cd-scroll::-webkit-scrollbar { width: 4px; }
 .cd-root .cd-scroll::-webkit-scrollbar-thumb { border-radius: 8px; background: rgba(180,150,120,0.22); }
 
-/* ── 夜间模式：也做到同样精致的底（注意 cd-night 与 cd-root 在同一元素，用 .cd-root.cd-night） ── */
+/* ── Chế độ đêm: cũng làm nền tinh tế như vậy (lưu ý cd-night và cd-root cùng một phần tử, dùng .cd-root.cd-night) ── */
 .cd-root.cd-night .cd-sheet {
   background: linear-gradient(180deg, #23233c 0%, #1a1a2e 100%);
   border-color: rgba(255,255,255,0.05);
@@ -1515,7 +1515,7 @@
 .cd-root.cd-night .cd-btn-primary { background: linear-gradient(180deg, #cdb69b 0%, #b8a088 100%); }
 .cd-root.cd-night .cd-btn-secondary { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1); }
 
-/* ── 顶部加载进度条（切视图时的轻量反馈） ── */
+/* ── Thanh tiến độ tải trên cùng (phản hồi nhẹ khi chuyển view) ── */
 .cd-topbar-progress {
   position: absolute;
   left: 0; top: 0;
@@ -1539,7 +1539,7 @@
 }
 .cd-night .cd-topbar-progress .cd-bar { background: linear-gradient(90deg, #8a7a6a, #b8a088); }
 
-/* ── 浏览首页状态摘要条（数据量一眼可见） ── */
+/* ── Thanh tóm tắt trạng thái trang đầu duyệt (lượng dữ liệu thấy ngay) ── */
 .cd-statusbar {
   display: flex;
   flex-wrap: wrap;
@@ -1560,7 +1560,7 @@
 .cd-night .cd-stat-item b { color: #e0d9cb; }
 .cd-night .cd-stat-updated { color: #9c8f7d; }
 
-/* ── 剧情分组 tab（主线/支线/状态/未解决 点击切换） ── */
+/* ── Tab nhóm cốt truyện (bấm chuyển tuyến chính/tuyến phụ/trạng thái/chưa giải quyết) ── */
 .cd-tl-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -1592,7 +1592,7 @@
 .cd-night .cd-tl-tab { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1); color: #b0a28a; }
 .cd-night .cd-tl-tab.cd-tl-tab-active { background: rgba(255,255,255,0.08); }
 
-/* ── 新手提示内联图标：无彩色线条符号（替换彩色 emoji） ── */
+/* ── Biểu tượng nội tuyến của gợi ý người mới: ký hiệu nét không màu (thay emoji màu) ── */
 .cd-ico {
   font-size: calc(0.7rem * var(--cd-fs, 1));
   color: #8a94a0;
@@ -1603,7 +1603,7 @@
 .cd-night .cd-ico { color: #9aa4ae; }
 .cd-night .cd-ico-del { color: #b09080; }
 
-/* ── 重点角色面板（手动指定要重点写的角色） ── */
+/* ── Bảng nhân vật trọng điểm (chỉ định thủ công nhân vật cần viết trọng điểm) ── */
 .cd-focus-panel {
   border: 1px solid rgba(205,182,155,0.3);
   border-radius: 12px;
@@ -1646,10 +1646,10 @@
 .cd-night .cd-focus-card { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); }
 .cd-night .cd-focus-name { color: #e0d0b4; }
 
-/* ── 隐藏浏览页搜索框（保留 JS 逻辑，需要时可恢复显示） ── */
+/* ── Ẩn ô tìm kiếm trang duyệt (giữ logic JS, khi cần có thể hiện lại) ── */
 .cd-browse-search { display: none !important; }
 
-/* ── 数据概览标题行右侧的统计小字 ── */
+/* ── Chữ nhỏ thống kê bên phải hàng tiêu đề tổng quan dữ liệu ── */
 .cd-overview-stats {
   margin-left: 8px;
   font-size: calc(0.56rem * var(--cd-fs, 1));
@@ -1664,7 +1664,7 @@
 .cd-browse-overview-summary { align-items: baseline; }
 .cd-night .cd-overview-stats { color: #9c8f7d; }
 
-/* ── 剧情页地点统计折叠 ── */
+/* ── Gập thống kê địa điểm trang cốt truyện ── */
 .cd-location-wrap {
   border: 1px solid rgba(180,150,120,0.12);
   border-radius: 9px;
@@ -1686,7 +1686,7 @@
 .cd-night .cd-location-summary { color: #c4b8a5; }
 .cd-night .cd-location-summary i { color: #9c8f7d; }
 
-/* ── 空态引导页底部「老手跳过」 ── */
+/* ── “Người quen bỏ qua” ở đáy trang hướng dẫn trạng thái trống ── */
 .cdb-empty-guide-skip {
   margin-top: 14px;
   padding-top: 10px;
@@ -1706,7 +1706,7 @@
 .cd-night .cdb-skip-btn { color: #9c8f7d; border-color: rgba(255,255,255,0.15); }
 .cd-night .cdb-skip-btn:hover { background: rgba(255,255,255,0.08); color: #e0d8ca; }
 
-/* ── 夜间模式：单条日记卡片（修米色背景/金色字，改深色底+浅字） ── */
+/* ── Chế độ đêm: thẻ nhật ký đơn (sửa nền màu be/chữ vàng, đổi thành nền tối + chữ sáng) ── */
 .cd-night .cd-root .cd-entry {
   background: rgba(40,40,62,0.55);
   border-color: rgba(255,255,255,0.07);
@@ -1731,7 +1731,7 @@
 .cd-night .cd-entry-head .cd-entry-fav-btn { color: #8b7d6a; }
 .cd-night .cd-entry-head .cd-entry-psyche-btn { color: #a78fd6; }
 
-/* ── 空态引导页：重点角色添加 ── */
+/* ── Trang hướng dẫn trạng thái trống: thêm nhân vật trọng điểm ── */
 .cdb-empty-guide-focus {
   max-width: 320px;
   margin: 10px auto 0;
@@ -1754,7 +1754,7 @@
 .cd-night .cdb-focus-label { color: #c9b48e; }
 .cd-night .cdb-focus-label i { color: #cdb69b; }
 
-/* ── 空态引导页：选择性记忆（只记我选的角色）── */
+/* ── Trang hướng dẫn trạng thái trống: ký ức chọn lọc (chỉ nhớ nhân vật tôi chọn) ── */
 .cdb-empty-guide-selective {
   display: flex; align-items: center; gap: 8px;
   max-width: 320px; margin: 8px auto 0;
@@ -1778,7 +1778,7 @@
 .cd-night .cdb-select-label i { color: #e08a6a; }
 .cd-night .cdb-select-desc { color: #c48a70; }
 
-/* ── 重点角色面板：世界书联动快捷开关 ── */
+/* ── Bảng nhân vật trọng điểm: công tắc nhanh liên động sổ thế giới ── */
 .cd-focus-wbrow {
   display: flex; align-items: center; gap: 8px;
   margin-bottom: 8px; padding: 5px 8px;
@@ -1798,7 +1798,7 @@
 .cd-night .cd-focus-wblabel { color: #c9b48e; }
 .cd-night .cd-focus-wblabel i { color: #cdb69b; }
 
-/* ═══ 日记阅读区：强制不跟随酒馆背景（展开后的容器用固有颜色，日/夜分明）═══ */
+/* ═══ Vùng đọc nhật ký: bắt buộc không theo nền SillyTavern (vùng chứa sau khi mở dùng màu cố định, ngày/đêm rõ ràng) ═══ */
 .cd-root.cd-day .cd-diary-card,
 .cd-root.cd-day .cd-card-body,
 .cd-root.cd-day .cd-entry-content {
@@ -1835,8 +1835,8 @@
 .cd-root.cd-night .cd-entry[open] > .cd-entry-summary { color: #e8e2d6 !important; }
 
 /* ══════════════════════════════════════════════════════════════
-   ★ 角色主视觉墙 最终覆盖（①网格墙 + ④堆叠卡）
-   放在文件最末尾，确保不被上方「高级化补丁」/夜间覆盖干扰
+   ★ Ghi đè cuối cùng của bức tường thị giác chính nhân vật (① tường lưới + ④ thẻ xếp chồng)
+   Đặt ở cuối file, đảm bảo không bị “bản vá cao cấp hóa”/ghi đè ban đêm ở trên can thiệp
    ══════════════════════════════════════════════════════════════ */
 .cd-root .cd-card-list {
   display: grid !important;
@@ -1850,7 +1850,7 @@
   overflow: hidden;
   transition: transform 0.22s cubic-bezier(.2,.7,.3,1.2), box-shadow 0.22s ease !important;
 }
-/* 日间封面卡 */
+/* Thẻ bìa ban ngày */
 .cd-root.cd-day .cd-diary-card {
   background: linear-gradient(160deg, #fffefe 0%, #faf5ec 100%) !important;
   border: 1px solid rgba(180,150,120,0.13) !important;
@@ -1859,7 +1859,7 @@
     0 3px 8px rgba(0,0,0,0.05),
     0 10px 26px rgba(0,0,0,0.06) !important;
 }
-/* 未展开 = 封面磁贴 + hover 漂浮旋转 */
+/* Chưa mở = ô gạch bìa + hover nổi xoay */
 .cd-root .cd-diary-card:not([open]) { cursor: pointer; }
 .cd-root .cd-diary-card:not([open]) .cd-card-summary {
   flex-direction: column !important;
@@ -1873,7 +1873,7 @@
   font-weight: 700;
 }
 .cd-root .cd-diary-card:not([open]) .cd-card-meta { flex-wrap: wrap; opacity: 0.55; }
-.cd-root .cd-diary-card:not([open]) .cd-card-meta::after { content: '▸ 展开'; font-size: calc(0.55rem * var(--cd-fs,1)); opacity: 0.5; margin-left: auto; }
+.cd-root .cd-diary-card:not([open]) .cd-card-meta::after { content: '▸ Mở ra'; font-size: calc(0.55rem * var(--cd-fs,1)); opacity: 0.5; margin-left: auto; }
 .cd-root .cd-diary-card:not([open]):hover {
   transform: translateY(-5px) scale(1.03) !important;
   box-shadow:
@@ -1882,7 +1882,7 @@
     0 22px 46px rgba(0,0,0,0.14) !important;
 }
 .cd-root .cd-diary-card:not([open]):active { transform: translateY(-1px) scale(0.99); }
-/* 堆叠衬卡（身后露出半张卡） */
+/* Thẻ lót xếp chồng (phía sau lộ ra nửa tấm thẻ) */
 .cd-root .cd-diary-card:not([open])::after {
   content: '';
   position: absolute;
@@ -1897,11 +1897,11 @@
   border: 1px solid rgba(180,150,120,0.14);
 }
 .cd-root .cd-diary-card:not([open]):hover::after { transform: translate(6px, 9px); }
-/* 展开：横跨整行，日记流铺满 */
+/* Mở ra: trải ngang cả hàng, luồng nhật ký phủ kín */
 .cd-root .cd-diary-card[open] {
   grid-column: 1 / -1 !important;
 }
-/* 展开态背景：与面板底色融合（避免展开后露出封面卡的米色小方块） */
+/* Nền trạng thái mở: hòa với màu nền bảng (tránh sau khi mở lộ ra ô vuông nhỏ màu be của thẻ bìa) */
 .cd-root.cd-day .cd-diary-card[open] {
   background: #fffdf9 !important;
   border-color: rgba(180,150,120,0.10) !important;
@@ -1916,7 +1916,7 @@
   background: rgba(245,238,228,0.45);
 }
 .cd-root.cd-night .cd-diary-card[open] .cd-card-summary { background: rgba(255,255,255,0.04); }
-/* 夜间：保持深色底，但网格/堆叠/浮动效果不变 */
+/* Ban đêm: giữ nền tối, nhưng hiệu ứng lưới/xếp chồng/nổi không đổi */
 .cd-root.cd-night .cd-diary-card {
   background: rgba(30,30,50,0.6) !important;
   border-color: rgba(255,255,255,0.08) !important;
@@ -1931,10 +1931,10 @@
 }
 
 /* ══════════════════════════════════════════════════════════════
-   按钮 / 面板统一「堆叠卡」风格（与角色卡一致）
-   工具栏 tab、普通按钮、更多菜单项 统一：衬卡 + hover 上浮
+   Nút / bảng thống nhất phong cách “thẻ xếp chồng” (nhất quán với thẻ nhân vật)
+   Tab thanh công cụ, nút thường, mục menu thêm thống nhất: thẻ lót + hover nổi lên
    ══════════════════════════════════════════════════════════════ */
-/* ── 工具栏 tab：像一张张小卡，hover 上浮 + 身后衬卡撑开 ── */
+/* ── Tab thanh công cụ: như từng tấm thẻ nhỏ, hover nổi lên + thẻ lót phía sau mở ra ── */
 .cd-root .cd-tb-btn {
   position: relative;
   border-radius: 12px;
@@ -1955,7 +1955,7 @@
   background: rgba(60,60,90,0.6);
 }
 
-/* ── 普通按钮：统一上浮 + 柔和投影（main / secondary / danger） ── */
+/* ── Nút thường: thống nhất nổi lên + bóng đổ dịu (main / secondary / danger) ── */
 .cd-root .cd-btn-primary,
 .cd-root .cd-btn-secondary,
 .cd-root .cd-btn-danger {
@@ -1973,13 +1973,13 @@
 .cd-root .cd-btn-secondary:not(:disabled):active,
 .cd-root .cd-btn-danger:not(:disabled):active { transform: translateY(0); box-shadow: none; }
 
-/* ── 更多菜单项：hover 微微左移 + 轻微浮起提示 ── */
+/* ── Mục menu thêm: hover hơi dịch trái + nổi nhẹ gợi ý ── */
 .cd-root .cd-more-item {
   transition: transform 0.13s ease, background 0.13s ease;
 }
 .cd-root .cd-more-item:hover { transform: translateX(2px); }
 
-/* ── 单条日记 / 折叠面板：圆角统一 + 浮起手感（轻微） ── */
+/* ── Nhật ký đơn / bảng gập: bo góc thống nhất + cảm giác nổi (nhẹ) ── */
 .cd-root .cd-entry,
 .cd-root .cd-focus-panel,
 .cd-root .cd-tl-card {
@@ -1991,19 +1991,19 @@
 }
 
 /* ══════════════════════════════════════════════════════════════
-   ★ 全组件「扁平淡金」统一风格（日记卡同源设计语言）
-   要点：扁平 + 淡金色点缀 + 轻盈浮起（不做厚重立体）
-   设计令牌：淡金描边/高光、极轻扁平影、大圆角、细字重
+   ★ Phong cách thống nhất “phẳng vàng nhạt” cho mọi thành phần (cùng ngôn ngữ thiết kế với thẻ nhật ký)
+   Điểm chính: phẳng + điểm xuyết vàng nhạt + nổi nhẹ nhàng (không làm lập thể nặng nề)
+   Token thiết kế: viền/highlight vàng nhạt, bóng phẳng cực nhẹ, bo góc lớn, nét chữ mảnh
    ══════════════════════════════════════════════════════════════ */
 .cd-root {
-  /* 扁平淡金令牌 */
-  --cd-gold: #c9a87c;          /* 主金色 */
-  --cd-gold-light: #e2d3b6;    /* 浅金 */
-  --cd-gold-soft: rgba(201,168,124,0.16);  /* 淡金底 */
-  --cd-gold-line: 1px solid rgba(201,168,124,0.30);  /* 淡金描边 */
+  /* Token phẳng vàng nhạt */
+  --cd-gold: #c9a87c;          /* Vàng chính */
+  --cd-gold-light: #e2d3b6;    /* Vàng nhạt */
+  --cd-gold-soft: rgba(201,168,124,0.16);  /* Nền vàng nhạt */
+  --cd-gold-line: 1px solid rgba(201,168,124,0.30);  /* Viền vàng nhạt */
 }
 
-/* ── 面板 sheet：扁平纯色 + 顶部淡金光带，底部轻影 ── */
+/* ── Bảng sheet: màu trơn phẳng + dải sáng vàng nhạt trên cùng, bóng nhẹ dưới đáy ── */
 .cd-root.cd-day .cd-sheet {
   border: 1px solid rgba(201,168,124,0.22);
   box-shadow: 0 6px 24px rgba(120,95,60,0.10);
@@ -2021,14 +2021,14 @@
   box-shadow: 0 10px 34px rgba(0,0,0,0.4);
 }
 
-/* ── 标题栏：扁平 + 底部细金线 ── */
+/* ── Thanh tiêu đề: phẳng + đường vàng mảnh dưới đáy ── */
 .cd-root .cd-header { position: relative; }
 .cd-root.cd-day .cd-header {
   border-bottom: 1px solid rgba(201,168,124,0.26);
 }
 .cd-root.cd-night .cd-header { border-bottom-color: rgba(255,255,255,0.08); }
 
-/* ── 按钮：扁平淡金（主按钮金底；次按钮白底+金描边），hover 淡金提亮 ── */
+/* ── Nút: phẳng vàng nhạt (nút chính nền vàng; nút phụ nền trắng + viền vàng), hover sáng vàng nhạt ── */
 .cd-root .cd-btn-primary,
 .cd-root .cd-btn-secondary,
 .cd-root .cd-btn-danger {
@@ -2069,7 +2069,7 @@
 .cd-root .cd-btn-secondary:active,
 .cd-root .cd-btn-danger:active { transform: scale(0.97); }
 
-/* ── 输入框 / 下拉：扁平淡金描边，聚焦时金色提亮 ── */
+/* ── Ô nhập / thả xuống: viền phẳng vàng nhạt, khi focus sáng vàng ── */
 .cd-root .cd-input,
 .cd-root .cd-select {
   border-radius: 10px;
@@ -2085,7 +2085,7 @@
   box-shadow: 0 0 0 3px rgba(201,168,124,0.12);
 }
 
-/* ── 工具栏：扁平底 + 分隔细线；tab 小卡 hover 淡金浮起 ── */
+/* ── Thanh công cụ: nền phẳng + đường phân cách mảnh; tab thẻ nhỏ hover nổi vàng nhạt ── */
 .cd-root.cd-day .cd-toolbar {
   background: rgba(250,246,240,0.6);
   padding: 8px 10px;
@@ -2119,7 +2119,7 @@
   transform: translateY(-1px);
 }
 
-/* ── 折叠面板 / 卡片：扁平浅底 + 细金描边 + 右侧淡金光带 ── */
+/* ── Bảng gập / thẻ: nền nhạt phẳng + viền vàng mảnh + dải sáng vàng nhạt bên phải ── */
 .cd-root.cd-day .cd-focus-panel,
 .cd-root.cd-day .cd-custom-panel,
 .cd-root.cd-day .cd-location-wrap,
@@ -2143,7 +2143,7 @@
   border-color: rgba(205,182,155,0.10);
 }
 
-/* ── 设置行 / 状态条：扁平 + 细分隔 + 浅金底 ── */
+/* ── Hàng cài đặt / thanh trạng thái: phẳng + phân cách mảnh + nền vàng nhạt ── */
 .cd-root .cd-set-row { border-radius: 10px; }
 .cd-root.cd-day .cd-set-row:hover { background: rgba(201,168,124,0.06); }
 .cd-root.cd-day .cd-statusbar {
@@ -2153,7 +2153,7 @@
 }
 .cd-root.cd-day .cd-browse-overview-item .cd-browse-overview-title i { color: #c9a87c; }
 
-/* ── 角色卡 hover：扁平轻盈浮起 + 淡金边，右侧淡金光（不厚重） ── */
+/* ── Thẻ nhân vật hover: nổi phẳng nhẹ nhàng + viền vàng nhạt, ánh vàng nhạt bên phải (không nặng nề) ── */
 .cd-root .cd-diary-card:not([open]):hover {
   transform: translateY(-3px) scale(1.01);
   box-shadow:
@@ -2166,38 +2166,38 @@
   border-color: rgba(205,182,155,0.25);
 }
 
-/* ── 下拉 select 的选项区 ── */
+/* ── Vùng tùy chọn của select thả xuống ── */
 .cd-root .cd-select option { background: #fffdfa; color: #4a3a2a; }
 
 /* ══════════════════════════════════════════════════════════════
-   ★ 奶油莫兰迪 · 材质主题 v2（最终权威配色层）
-   设计原则（参考现代高级 UI）：
-   · 中性色占主导（奶油底 + 纯白卡片 + 浅灰褐文字）
-   · 层次靠「弥散带色阴影 + 明度」而非描边/贴金
-   · 杏仁色低饱和点缀，只用在小面积（激活态/图标/强调）
-   · 大量留白 + 克制字重
+   ★ Kem Morandi · Chủ đề chất liệu v2 (lớp phối màu quyền uy cuối cùng)
+   Nguyên tắc thiết kế (tham khảo UI cao cấp hiện đại):
+   · Màu trung tính chiếm chủ đạo (nền kem + thẻ trắng tinh + chữ nâu xám nhạt)
+   · Lớp lang dựa vào “bóng màu khuếch tán + độ sáng” chứ không phải viền/dát vàng
+   · Điểm xuyết màu hạnh nhân độ bão hòa thấp, chỉ dùng ở diện tích nhỏ (trạng thái kích hoạt/biểu tượng/nhấn mạnh)
+   · Nhiều khoảng trống + nét chữ tiết chế
    ══════════════════════════════════════════════════════════════ */
 .cd-root {
-  /* 材质令牌 */
-  --ca-bg: #f7f3ec;            /* 面板奶油底 */
-  --ca-card: #ffffff;          /* 卡片纯白 */
-  --ca-ink: #3d3a35;           /* 主文字 暖黑 */
-  --ca-sub: #9a9284;           /* 辅助文字 灰褐 */
-  --ca-line: rgba(150,132,108,0.13);   /* 极淡分隔 */
-  --ca-accent: #c1936d;        /* 杏仁点缀（低饱和陶土金） */
+  /* Token chất liệu */
+  --ca-bg: #f7f3ec;            /* Nền kem của bảng */
+  --ca-card: #ffffff;          /* Thẻ trắng tinh */
+  --ca-ink: #3d3a35;           /* Chữ chính đen ấm */
+  --ca-sub: #9a9284;           /* Chữ phụ nâu xám */
+  --ca-line: rgba(150,132,108,0.13);   /* Phân cách cực nhạt */
+  --ca-accent: #c1936d;        /* Điểm xuyết hạnh nhân (vàng đất nung độ bão hòa thấp) */
   --ca-accent-soft: rgba(193,147,109,0.10);
   --ca-shadow: 0 6px 20px rgba(150,120,90,0.10), 0 2px 8px rgba(150,120,90,0.06);
   --ca-shadow-hover: 0 12px 32px rgba(150,120,90,0.16), 0 4px 12px rgba(150,120,90,0.08);
 }
 
-/* ── 面板 sheet：奶油渐变底 + 弥散暖影 + 无描边的干净感 ── */
+/* ── Bảng sheet: nền chuyển kem + bóng ấm khuếch tán + cảm giác sạch không viền ── */
 .cd-root.cd-day .cd-sheet {
   background: linear-gradient(180deg, #fbf8f2 0%, #f4efe6 100%);
   border: none;
   box-shadow: var(--ca-shadow);
   border-radius: 18px;
 }
-.cd-root.cd-day .cd-sheet::before { display: none; }  /* 去掉顶部金带，改用更含蓄的顶部浅光 */
+.cd-root.cd-day .cd-sheet::before { display: none; }  /* Bỏ dải vàng trên cùng, đổi dùng ánh sáng nhạt trên cùng kín đáo hơn */
 .cd-root.cd-day .cd-sheet::after {
   content: '';
   position: absolute; top: 0; left: 0; right: 0; height: 1px;
@@ -2205,20 +2205,20 @@
 }
 .cd-root.cd-day .cd-sheet { position: relative; }
 
-/* ── 标题栏：奶油浅底 + 极淡分隔，去掉生硬金线 ── */
+/* ── Thanh tiêu đề: nền kem nhạt + phân cách cực nhạt, bỏ đường vàng cứng ── */
 .cd-root.cd-day .cd-header {
   background: rgba(255,255,255,0.55);
   border-bottom: 1px solid var(--ca-line);
 }
 .cd-root.cd-day .cd-header-title { color: #4a4438; font-weight: 650; letter-spacing: 0.08em; }
 
-/* ── 内容区：奶油底，留白更多 ── */
+/* ── Vùng nội dung: nền kem, nhiều khoảng trống hơn ── */
 .cd-root.cd-day .cd-body,
 .cd-root.cd-day .cd-settings-panel {
   background: rgba(247,243,236,0.4);
 }
 
-/* ── 工具栏：透明浅底 + 底部分隔，tab 无边框透明 ── */
+/* ── Thanh công cụ: nền nhạt trong suốt + phân cách dưới đáy, tab trong suốt không viền ── */
 .cd-root.cd-day .cd-toolbar {
   background: transparent;
   border-bottom: 1px solid var(--ca-line);
@@ -2246,7 +2246,7 @@
   font-weight: 600;
 }
 
-/* ── 按钮：杏仁低饱和 + 弥散投影，hover 提亮浮起 ── */
+/* ── Nút: hạnh nhân độ bão hòa thấp + bóng đổ khuếch tán, hover sáng lên nổi lên ── */
 .cd-root .cd-btn-primary,
 .cd-root .cd-btn-secondary,
 .cd-root .cd-btn-danger {
@@ -2282,7 +2282,7 @@
 .cd-root .cd-btn-secondary:active,
 .cd-root .cd-btn-danger:active { transform: scale(0.97); }
 
-/* ── 输入框/下拉：纯白卡槽 + 淡分隔，聚焦杏仁光晕 ── */
+/* ── Ô nhập/thả xuống: rãnh thẻ trắng tinh + phân cách nhạt, focus quầng sáng hạnh nhân ── */
 .cd-root.cd-day .cd-input,
 .cd-root.cd-day .cd-select {
   background: #ffffff;
@@ -2297,7 +2297,7 @@
   box-shadow: 0 0 0 3px rgba(193,147,109,0.14);
 }
 
-/* ── 卡片（角色卡/折叠面板/概览/日记条目）：纯白 + 弥散暖影 + 留白 ── */
+/* ── Thẻ (thẻ nhân vật/bảng gập/tổng quan/mục nhật ký): trắng tinh + bóng ấm khuếch tán + khoảng trống ── */
 .cd-root.cd-day .cd-diary-card,
 .cd-root.cd-day .cd-focus-panel,
 .cd-root.cd-day .cd-custom-panel,
@@ -2313,7 +2313,7 @@
 }
 .cd-root.cd-day .cd-diary-card { box-shadow: var(--ca-shadow); }
 
-/* 角色卡 hover：轻盈浮起 + 弥散暖影扩大（不贴边、不旋转） */
+/* Thẻ nhân vật hover: nổi nhẹ nhàng + bóng ấm khuếch tán mở rộng (không sát viền, không xoay) */
 .cd-root .cd-diary-card:not([open]):hover {
   transform: translateY(-4px) scale(1.01);
   box-shadow: var(--ca-shadow-hover);
@@ -2326,7 +2326,7 @@
 .cd-root.cd-day .cd-diary-card:not([open]) .cd-card-name { color: #4a4438; }
 .cd-root.cd-day .cd-diary-card:not([open]) .cd-card-meta { color: #9a9284; }
 
-/* 折叠面板头：淡杏仁底，克制的可展开提示 */
+/* Đầu bảng gập: nền hạnh nhân nhạt, gợi ý có thể mở một cách tiết chế */
 .cd-root.cd-day .cd-focus-head,
 .cd-root.cd-day .cd-custom-head,
 .cd-root.cd-day .cd-location-summary {
@@ -2335,11 +2335,11 @@
 }
 .cd-root.cd-day .cd-focus-head i { color: var(--ca-accent); }
 
-/* ── 设置行：留白分栏，无底纹更干净 ── */
+/* ── Hàng cài đặt: chia cột có khoảng trống, không vân nền sạch hơn ── */
 .cd-root.cd-day .cd-set-row { border-radius: 9px; padding: 6px 6px; }
 .cd-root.cd-day .cd-set-row:hover { background: rgba(247,243,236,0.8); }
 
-/* ── 夜间：深灰莫兰迪（蓝灰底 + 暖文字 + 杏仁点缀） ── */
+/* ── Ban đêm: Morandi xám đậm (nền xám xanh + chữ ấm + điểm xuyết hạnh nhân) ── */
 .cd-root.cd-night .cd-sheet {
   background: linear-gradient(180deg, #26262f 0%, #1f1f28 100%);
   border: 1px solid rgba(255,255,255,0.06);
@@ -2376,14 +2376,14 @@
 .cd-root .cd-select option { background: #2f2f3a; color: #d8d2c6; }
 
 /* ══════════════════════════════════════════════════════════════
-   ★ 暖金手账 · 杂志导览（最终权威主题 v3）
-   核心：顶栏融入面板成「杂志横幅」 + 工具栏变成「分段胶囊」
-   · 顶栏不再是一根白条，而是融入奶油底、只存标题+金色细线
-   · 工具栏做成通长胶囊槽，激活 tab 是白色药丸浮起
-   · 图标收敛为细线，无边框，hover 淡金
+   ★ Sổ tay vàng ấm · Dẫn lối tạp chí (chủ đề quyền uy cuối cùng v3)
+   Cốt lõi: thanh trên hòa vào bảng thành “băng rôn tạp chí” + thanh công cụ thành “viên thuốc phân đoạn”
+   · Thanh trên không còn là một dải trắng, mà hòa vào nền kem, chỉ giữ tiêu đề + đường vàng mảnh
+   · Thanh công cụ làm thành rãnh viên thuốc dài suốt, tab kích hoạt là viên thuốc trắng nổi lên
+   · Biểu tượng thu gọn thành nét mảnh, không viền, hover vàng nhạt
    ══════════════════════════════════════════════════════════════ */
 
-/* ── 面板：整体奶油纸感 + 顶部杂志横幅渐变 ── */
+/* ── Bảng: cảm giác giấy kem tổng thể + băng rôn tạp chí chuyển màu trên cùng ── */
 .cd-root.cd-day .cd-sheet {
   background: linear-gradient(180deg, #faf6ef 0%, #f4efe6 38%, #f7f3ec 100%);
   border: 1px solid rgba(190,172,140,0.16);
@@ -2394,14 +2394,14 @@
     0 30px 70px rgba(150,120,90,0.10);
 }
 
-/* ── 标题栏：彻底融入面板，做成杂志顶端横幅 ── */
+/* ── Thanh tiêu đề: hòa hẳn vào bảng, làm thành băng rôn đầu tạp chí ── */
 .cd-root.cd-day .cd-header {
   background: transparent;
   border-bottom: none;
   padding: 20px 22px 14px;
   cursor: grab;
 }
-/* 标题：大而精致，带装饰性细金线（杂志刊头） */
+/* Tiêu đề: lớn mà tinh tế, có đường vàng mảnh trang trí (đầu báo tạp chí) */
 .cd-root.cd-day .cd-header-title {
   position: relative;
   font-size: calc(1.0rem * var(--cd-fs, 1));
@@ -2417,7 +2417,7 @@
   border-radius: 2px;
   background: linear-gradient(90deg, #c9a87c 0%, #e2d3b6 40%, transparent 100%);
 }
-/* 顶部图标：透明圆点，hover 淡金底 */
+/* Biểu tượng trên cùng: chấm tròn trong suốt, hover nền vàng nhạt */
 .cd-root.cd-day .cd-header-btn {
   width: 30px; height: 30px;
   border-radius: 50%;
@@ -2436,7 +2436,7 @@
   background: #fdf1ec;
 }
 
-/* ── 工具栏：整条通长「分段胶囊」槽 ── */
+/* ── Thanh công cụ: cả dải rãnh “viên thuốc phân đoạn” dài suốt ── */
 .cd-root.cd-day .cd-toolbar {
   position: relative;
   background: rgba(230,219,197,0.35);
@@ -2450,7 +2450,7 @@
     inset 0 1px 3px rgba(180,160,130,0.12),
     0 1px 1px rgba(255,255,255,0.6);
 }
-/* tab：透明药丸内在胶囊槽内；激活 = 白色浮起药丸 + 杏仁文字 */
+/* tab: viên thuốc trong suốt bên trong rãnh viên thuốc; kích hoạt = viên thuốc trắng nổi lên + chữ hạnh nhân */
 .cd-root.cd-day .cd-tb-btn {
   flex: 1;
   border: none !important;
@@ -2471,17 +2471,17 @@
 }
 .cd-root.cd-day .cd-tb-btn i { opacity: 0.75; }
 
-/* 更多按钮（胶囊槽内的右侧锚点） */
+/* Nút thêm (điểm neo bên phải trong rãnh viên thuốc) */
 .cd-root.cd-day .cd-tb-btn.cd-tb-more { color: #a79982; }
 
-/* ── 内容区：奶油底下沉，留白舒适 ── */
+/* ── Vùng nội dung: nền kem chìm xuống, khoảng trống thoải mái ── */
 .cd-root.cd-day .cd-body,
 .cd-root.cd-day .cd-settings-panel {
   background: transparent;
   padding: 12px 16px 18px;
 }
 
-/* ── 夜间：墨蓝莫兰迪 + 深色胶囊槽 ── */
+/* ── Ban đêm: Morandi xanh mực + rãnh viên thuốc tối màu ── */
 .cd-root.cd-night .cd-sheet {
   background: linear-gradient(180deg, #2a2a35 0%, #23232e 100%);
   border-color: rgba(255,255,255,0.07);
@@ -2505,42 +2505,42 @@
 }
 
 /* ══════════════════════════════════════════════════════════════
-   ★ 终极间距压缩补丁 v3.7（针对实际加载路径 #cd-modal-root）
-   说明：插件根节点是 `<div id="cd-modal-root" class="cd-root cd-day">`，
-   由 JS 注入在 <html> 末端（不在 body 内），故用 id 级选择器确保命中。
-   目标：
-   ① 工具栏(日记栏) ↔ 重点角色栏 间距压到极小（日间/夜间统一）
-   ② 内容与面板边缘（左右/上下内边距）收敛
+   ★ Bản vá nén khoảng cách tối thượng v3.7 (nhắm vào đường tải thực tế #cd-modal-root)
+   Thuyết minh: nút gốc của plugin là `<div id="cd-modal-root" class="cd-root cd-day">`,
+   do JS tiêm ở cuối <html> (không nằm trong body), nên dùng selector cấp id để đảm bảo trúng.
+   Mục tiêu:
+   ① Khoảng cách thanh công cụ (thanh nhật ký) ↔ thanh nhân vật trọng điểm nén cực nhỏ (thống nhất ngày/đêm)
+   ② Thu hẹp nội dung với mép bảng (padding trái phải/trên dưới)
    ══════════════════════════════════════════════════════════════ */
 
-/* ① 工具栏：日间/夜间一律贴紧、取消悬浮胶囊与底部空隙 */
+/* ① Thanh công cụ: ngày/đêm đều sát nhau, bỏ viên thuốc nổi và khoảng trống dưới đáy */
 #cd-modal-root .cd-toolbar {
   margin: 0 !important;
   margin-top: 0 !important;
-  margin-bottom: 0 !important;         /* 消掉胶囊槽底部空隙 */
-  padding: 4px 10px 3px !important;    /* 顶部 4 贴 header，底部 3 贴内容 */
-  border-bottom: none !important;      /* 去掉分隔线产生的空隙感 */
-  border-radius: 0 !important;         /* 取消独立胶囊悬浮 */
+  margin-bottom: 0 !important;         /* Xóa khoảng trống dưới đáy rãnh viên thuốc */
+  padding: 4px 10px 3px !important;    /* Trên cùng 4 sát header, dưới đáy 3 sát nội dung */
+  border-bottom: none !important;      /* Bỏ cảm giác khoảng trống do đường phân cách tạo ra */
+  border-radius: 0 !important;         /* Bỏ viên thuốc nổi độc lập */
   border-left: none !important;
   border-right: none !important;
-  background: transparent !important;  /* 去底色，上下自然衔接 */
+  background: transparent !important;  /* Bỏ màu nền, trên dưới nối tự nhiên */
 }
 
-/* ② 内容区：顶部贴紧工具条，四向边缘收敛 */
+/* ② Vùng nội dung: trên cùng sát thanh công cụ, mép bốn hướng thu hẹp */
 #cd-modal-root #cd-body {
-  padding: 3px 8px 10px !important;    /* 顶部 3px；左右 8px 收敛边缘 */
+  padding: 3px 8px 10px !important;    /* Trên cùng 3px; trái phải 8px thu hẹp mép */
 }
 #cd-modal-root .cd-settings-panel {
   padding: 3px 8px 10px !important;
 }
 
-/* ③ 重点角色面板：顶部贴齐内容区顶边（日间/夜间一致） */
+/* ③ Bảng nhân vật trọng điểm: trên cùng sát mép trên vùng nội dung (ngày/đêm nhất quán) */
 #cd-modal-root .cd-focus-panel {
   margin-top: 0 !important;
   margin-bottom: 6px !important;
 }
 
-/* ④ 日间 header 收敛：压掉杂志横幅顶部大留白 */
+/* ④ Thu hẹp header ban ngày: ép bỏ khoảng trống lớn trên cùng băng rôn tạp chí */
 #cd-modal-root.cd-day .cd-header {
   padding: 10px 12px 8px !important;
 }
@@ -2548,7 +2548,7 @@
   padding-bottom: 3px !important;
 }
 
-/* ⑤ 重点角色卡片区：白净 + 贴紧（维持高级白，非浓金） */
+/* ⑤ Vùng thẻ nhân vật trọng điểm: trắng sạch + sát nhau (giữ màu trắng cao cấp, không vàng đậm) */
 #cd-modal-root .cd-focus-panel {
   background: #ffffff !important;
   border: 1px solid rgba(150,132,108,0.12) !important;
@@ -2571,7 +2571,7 @@
   color: #4a4438 !important;
 }
 
-/* ⑥ 兜底：任意 .cd-root 前缀（防个别宿主根名不同） */
+/* ⑥ Dự phòng: tiền tố .cd-root bất kỳ (phòng tên gốc của một số host khác) */
 .cd-root .cd-toolbar {
   margin: 0 !important;
   margin-bottom: 0 !important;
@@ -2589,14 +2589,14 @@
 }
 
 /* ══════════════════════════════════════════════════════════════
-   ★ v3.8：胶囊配色加深 + 适度呼吸（适配日间/夜间主题）
-   说明：用户认可紧凑，但觉得「太紧 + 太素」。本补丁在紧凑基础上：
-   ① 给工具栏一个适配主题的暖色胶囊底（日间适度暖棕、夜间墨蓝）
-   ② 收放外间距做「适度呼吸」，避免元素完全贴死
-   ③ 激活 tab 用 白/深色浮起 + 深金文字，观感高级
+   ★ v3.8: Phối màu viên thuốc đậm hơn + thở vừa phải (thích ứng chủ đề ngày/đêm)
+   Thuyết minh: người dùng chấp nhận sự gọn, nhưng thấy “quá chặt + quá nhạt”. Bản vá này trên nền gọn:
+   ① cho thanh công cụ một nền viên thuốc tông ấm thích ứng chủ đề (ban ngày nâu ấm vừa phải, ban đêm xanh mực)
+   ② nới khoảng cách ngoài để “thở vừa phải”, tránh các phần tử dính chặt hoàn toàn
+   ③ tab kích hoạt dùng nổi trắng/tối + chữ vàng đậm, cảm quan cao cấp
    ══════════════════════════════════════════════════════════════ */
 
-/* ── 日间：工具栏胶囊底色更深一点 + 全圆胶囊角 ── */
+/* ── Ban ngày: nền viên thuốc thanh công cụ đậm hơn chút + góc viên thuốc tròn hẳn ── */
 #cd-modal-root.cd-day .cd-toolbar {
   background: rgba(230,220,200,0.32) !important;
   border: 1px solid rgba(188,170,140,0.16) !important;
@@ -2620,7 +2620,7 @@
   border-radius: 999px !important;
   font-weight: 700;
 }
-/* 日间：内容区适度呼吸（不贴死），边缘略收敛但留观感 */
+/* Ban ngày: vùng nội dung thở vừa phải (không dính chặt), mép hơi thu nhưng giữ cảm quan */
 #cd-modal-root.cd-day #cd-body {
   padding: 6px 12px 14px !important;
 }
@@ -2632,7 +2632,7 @@
   padding: 12px 14px 10px !important;
 }
 
-/* ── 夜间：胶囊墨蓝槽 + 全圆胶囊角，贴合夜间主题 ── */
+/* ── Ban đêm: rãnh viên thuốc xanh mực + góc viên thuốc tròn hẳn, hợp chủ đề đêm ── */
 #cd-modal-root.cd-night .cd-toolbar {
   background: rgba(70,70,90,0.34) !important;
   border: 1px solid rgba(255,255,255,0.08) !important;
@@ -2656,7 +2656,7 @@
 #cd-modal-root.cd-night #cd-body { padding: 6px 12px 14px !important; }
 #cd-modal-root.cd-night .cd-focus-panel { margin-top: 0 !important; margin-bottom: 8px !important; }
 
-/* ==== 更多 → 工具中心（圆形覆盖层）· 奶油燕麦 淡色卡片 ==== */
+/* ==== Thêm → Trung tâm công cụ (lớp phủ tròn) · thẻ màu nhạt yến mạch kem ==== */
 .cd-more-reveal{position:absolute;top:0;left:0;right:0;bottom:0;z-index:600;background:linear-gradient(170deg,#fffef9 0%,#faf7ee 55%,#f5f0e3 100%);clip-path:circle(0px at 0px 0px);visibility:hidden;display:flex;flex-direction:column;color:#6b6358;}
 .cd-more-reveal.cd-more-on{visibility:visible;}
 .cd-more-reveal-head{display:flex;align-items:center;gap:10px;padding:13px 15px;background:rgba(255,254,250,.85);border-bottom:1px solid rgba(205,195,175,.24);flex-shrink:0;}
@@ -2685,7 +2685,7 @@
 .cd-more-desc{color:#9a9386;font-size:11px;line-height:1.6;border-top:1px solid rgba(205,195,175,.18);background:linear-gradient(180deg,#faf7ee,#f5f0e4);padding-left:0;padding-top:0;margin-top:8px;}
 .cd-more-open .cd-more-desc{padding:9px 0 3px;}
 .cd-more-desc::first-line{font-weight:500;color:#b3aa98;letter-spacing:.5px;}
-/* 夜间模式 */
+/* Chế độ đêm */
 .cd-night .cd-more-reveal{background:linear-gradient(170deg,#262636 0%,#2b2b3d 55%,#333349 100%);color:#d4c9b8;}
 .cd-night .cd-more-reveal-head{background:rgba(40,40,55,.9);border-bottom-color:rgba(255,255,255,.08);}
 .cd-night .cd-more-back{background:#34344a;color:#9a8d7a;}
@@ -2702,8 +2702,8 @@
 .cd-night .cd-more-label .tx{color:#8b7d6a;}
 
 
-/* ═══════════════ 角色图挂点 + 融合卡（v2.18.3+） ═══════════════ */
-/* ① 引导页 hero：背景角色图 + 右向渐变蒙版（保证浅色文字可读） */
+/* ═══════════════ Điểm gắn ảnh nhân vật + thẻ hợp nhất (v2.18.3+) ═══════════════ */
+/* ① Hero trang hướng dẫn: ảnh nhân vật nền + mặt nạ chuyển màu hướng phải (đảm bảo chữ sáng đọc được) */
 .cdb-empty-guide-hero.cdb-hero-img {
   position: relative; overflow: hidden; border-radius: 14px;
   padding: 20px 16px 16px; margin-bottom: 14px;
@@ -2721,7 +2721,7 @@
   background: linear-gradient(90deg, rgba(26,26,46,.96) 0%, rgba(26,26,46,.82) 42%, rgba(26,26,46,.12) 100%);
 }
 
-/* ② 空状态：顶部插画横条 + 底部渐变融底 */
+/* ② Trạng thái trống: dải tranh minh họa trên cùng + chuyển màu hòa nền dưới đáy */
 .cd-empty.cd-empty-art {
   position: relative; padding-top: 104px;
   background-repeat: no-repeat; background-position: center top; background-size: 300px 84px;
@@ -2736,7 +2736,7 @@
   background: linear-gradient(0deg, rgba(26,26,46,.92) 0%, rgba(26,26,46,0) 100%);
 }
 
-/* ③ 融合卡：真实统计 + 自动讲解 */
+/* ③ Thẻ hợp nhất: thống kê thật + tự động giải thích */
 .cd-intro {
   position: relative; overflow: hidden; border-radius: 14px; margin: 0 0 10px;
   border: 1px solid rgba(190,160,110,.18); box-shadow: 0 2px 10px rgba(120,90,50,.06);
@@ -2769,7 +2769,7 @@
 .cd-night .cd-intro-stat.dim .n { color: #b6ac9a; }
 .cd-night .cd-intro-stat .l { color: #96897a; }
 
-/* 自动讲解 */
+/* Tự động giải thích */
 .cd-tour { display: flex; align-items: center; gap: 8px; min-height: 30px; border-top: 1px solid rgba(190,160,110,.16); padding-top: 8px; }
 .cd-night .cd-tour { border-top-color: rgba(255,255,255,.09); }
 .cd-tour-tx { flex: 1; min-width: 0; font-size: calc(0.64rem * var(--cd-fs, 1)); line-height: 1.55; color: #6b5344; }
@@ -2811,13 +2811,13 @@
 }
 
 /* ==========================================================================
- * 皮肤层 · C 方案四主题（墨底鎏金 / 素瓷 / 宣纸 / 石墨）
- * 来源：HCDiary-C方案扩展-墨底鎏金.html 设计令牌
- * 作用：覆盖 style.css 原有硬编码配色，整体换肤（后写 + 高特异性 + !important）
- * 生成：patch_skin.py —— 请勿手改，改脚本重跑
+ * Lớp skin · Bốn chủ đề phương án C (Nền mực dát vàng / Sứ trơn / Giấy Tuyên / Than chì)
+ * Nguồn: token thiết kế HCDiary-C方案扩展-墨底鎏金.html
+ * Tác dụng: ghi đè phối màu mã cứng vốn có của style.css, thay skin tổng thể (viết sau + độ đặc hiệu cao + !important)
+ * Tạo bởi: patch_skin.py —— đừng sửa tay, sửa script rồi chạy lại
  * ========================================================================== */
 
-/* ---- 墨底鎏金 ---- */
+/* ---- Nền mực dát vàng ---- */
 .cd-root.cd-night{
   --cd-panel:#191715;
   --cd-panel2:#1f1d19;
@@ -2982,7 +2982,7 @@
 .cd-fab-btn:hover{background:var(--cd-cardH)!important;border-color:var(--cd-lineG)!important}
 .cd-fab-btn .cd-fab-orb{border:2px solid var(--cd-gold)!important}
 
-/* ---- 素瓷 ---- */
+/* ---- Sứ trơn ---- */
 .cd-root.cd-day1{
   --cd-panel:#f7f8fa;
   --cd-panel2:#eef0f5;
@@ -3147,7 +3147,7 @@
 .cd-fab-btn:hover{background:var(--cd-cardH)!important;border-color:var(--cd-lineG)!important}
 .cd-fab-btn .cd-fab-orb{border:2px solid var(--cd-gold)!important}
 
-/* ---- 宣纸 ---- */
+/* ---- Giấy Tuyên ---- */
 .cd-root.cd-day2{
   --cd-panel:#faf7f0;
   --cd-panel2:#f1ece1;
@@ -3312,7 +3312,7 @@
 .cd-fab-btn:hover{background:var(--cd-cardH)!important;border-color:var(--cd-lineG)!important}
 .cd-fab-btn .cd-fab-orb{border:2px solid var(--cd-gold)!important}
 
-/* ---- 石墨 ---- */
+/* ---- Than chì ---- */
 .cd-root.cd-day3{
   --cd-panel:#f4f4f3;
   --cd-panel2:#eaeae8;
@@ -3477,7 +3477,7 @@
 .cd-fab-btn:hover{background:var(--cd-cardH)!important;border-color:var(--cd-lineG)!important}
 .cd-fab-btn .cd-fab-orb{border:2px solid var(--cd-gold)!important}
 
-/* ---- 素瓷 ---- */
+/* ---- Sứ trơn ---- */
 .cd-root.cd-day{
   --cd-panel:#f7f8fa;
   --cd-panel2:#eef0f5;
@@ -3647,11 +3647,11 @@
 .cd-header,.cd-toolbar,.cd-body,.cd-settings-panel{position:relative;z-index:1}
 
 /* ==========================================================================
- * 方案 C · 布局层（仪表盘首页 / 全局搜索 / 右侧抽屉 / 手机底栏 / 卡片编排）
- * 配色全部走 .cd-root.cd-* 皮肤令牌，四主题自动适配；请勿手改，改 patch_layout.py 重跑
+ * Phương án C · Lớp bố cục (trang chủ dashboard / tìm kiếm toàn cục / ngăn kéo bên phải / thanh đáy điện thoại / sắp xếp thẻ)
+ * Phối màu đều theo token skin .cd-root.cd-*, bốn chủ đề tự thích ứng; đừng sửa tay, sửa patch_layout.py rồi chạy lại
  * ========================================================================== */
 
-/* ---- 顶部全局搜索框 ---- */
+/* ---- Ô tìm kiếm toàn cục trên cùng ---- */
 .cd-root .cd-hsearch{
   flex:0 1 260px;height:28px;border-radius:8px;background:var(--cd-panel2);
   border:1px solid var(--cd-lineS);display:flex;align-items:center;gap:7px;padding:0 9px;
@@ -3667,7 +3667,7 @@
 .cd-root .cd-hsearch-x:hover{color:var(--cd-ink)}
 .cd-root .cd-hspacer{flex:1}
 
-/* ---- 概览条 ---- */
+/* ---- Thanh tổng quan ---- */
 .cd-root .cd-ov{
   display:flex;padding:11px 14px;border:1px solid var(--cd-lineS);
   border-radius:11px;background:var(--cd-panel2);margin-bottom:14px;box-shadow:var(--cd-csh);
@@ -3678,7 +3678,7 @@
 .cd-root .cd-ov-n.g{color:var(--cd-gold)}
 .cd-root .cd-ov-l{font-size:10px;color:var(--cd-ink3);letter-spacing:.1em;margin-top:1px}
 
-/* ---- 分区标题 ---- */
+/* ---- Tiêu đề phân vùng ---- */
 .cd-root .cd-hsec{
   display:flex;align-items:center;gap:9px;margin:16px 0 9px;
   font-size:10.5px;letter-spacing:.2em;color:var(--cd-ink3);
@@ -3693,7 +3693,7 @@
 .cd-root .cd-hedit:hover{border-color:var(--cd-lineG);color:var(--cd-gold)}
 .cd-root .cd-hedit.on{background:var(--cd-gold);border-color:var(--cd-gold);color:var(--cd-onGold);font-weight:600}
 
-/* ---- 卡片网格 ---- */
+/* ---- Lưới thẻ ---- */
 .cd-root .cd-grid{display:grid;gap:9px;grid-template-columns:repeat(auto-fill,minmax(158px,1fr))}
 .cd-root .cd-card{
   position:relative;background:var(--cd-card);border:1px solid var(--cd-lineS);
@@ -3740,7 +3740,7 @@
 }
 .cd-root .cd-card-add:hover{border-color:var(--cd-lineG);color:var(--cd-gold)}
 
-/* ---- 工具格 ---- */
+/* ---- Ô công cụ ---- */
 .cd-root .cd-tgrid{display:grid;gap:7px;grid-template-columns:repeat(auto-fill,minmax(88px,1fr))}
 .cd-root .cd-ti{
   background:var(--cd-card);border:1px solid var(--cd-lineS);border-radius:9px;
@@ -3754,7 +3754,7 @@
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 
-/* ---- 抽屉 ---- */
+/* ---- Ngăn kéo ---- */
 .cd-root .cd-hmask{
   position:absolute;inset:0;background:rgba(0,0,0,.42);opacity:0;pointer-events:none;
   transition:opacity .26s;z-index:120;
@@ -3795,7 +3795,7 @@
 }
 .cd-root .cd-hbtn.pri:hover{background:var(--cd-goldHi);border-color:var(--cd-goldHi)}
 
-/* ---- 抽屉内零件 ---- */
+/* ---- Linh kiện trong ngăn kéo ---- */
 .cd-root .cd-hrow{
   border:1px solid var(--cd-lineS);border-radius:10px;padding:10px 12px;margin-bottom:8px;
   background:var(--cd-card);transition:.16s;cursor:pointer;box-shadow:var(--cd-csh);
@@ -3852,7 +3852,7 @@
 .cd-root .cd-hsw.on .cd-htg2{background:var(--cd-glow);border-color:var(--cd-lineG)}
 .cd-root .cd-hsw.on .cd-htg2:after{left:18px;background:var(--cd-gold)}
 
-/* ---- 手机底部动作条（窄屏才出现） ---- */
+/* ---- Thanh hành động đáy điện thoại (chỉ hiện ở màn hình hẹp) ---- */
 .cd-root .cd-tabbar{display:none}
 @media (max-width: 620px){
   .cd-root .cd-tabbar{
@@ -3873,22 +3873,22 @@
   }
   .cd-root .cd-hfab:active{transform:translateX(-50%) scale(.93)}
   .cd-root .cd-hfab:hover{background:var(--cd-goldHi)}
-  /* 抽屉在窄屏变底部 sheet */
+  /* Ngăn kéo ở màn hình hẹp biến thành sheet dưới đáy */
   .cd-root .cd-hdr{
     width:100%;max-width:none;top:44px;border-left:none;
     border-top-left-radius:16px;border-top-right-radius:16px;transform:translateY(100%);
   }
   .cd-root .cd-hdr.on{transform:translateY(0)}
-  /* 搜索框在窄屏让位 */
+  /* Ô tìm kiếm nhường chỗ ở màn hình hẹp */
   .cd-root .cd-header-title{display:none}
   .cd-root .cd-hsearch{flex:1 1 auto}
 }
 
 /* =========================================================================
-   方案C 收尾层 · 顶部瘦身 / 卡片封面 / 抽屉半屏档
-   （追加在皮肤层之后，同特异性后写胜出）
+   Lớp kết thúc phương án C · Thu gọn trên cùng / bìa thẻ / mức nửa màn hình ngăn kéo
+   (thêm sau lớp skin, cùng độ đặc hiệu viết sau thắng)
    ========================================================================= */
-/* ---- A. 顶部：主 tab 已删，只留面包屑 + 全部功能 ---- */
+/* ---- A. Trên cùng: tab chính đã xóa, chỉ giữ breadcrumb + tất cả chức năng ---- */
 .cd-root .cd-toolbar.cd-toolbar-slim{
   display:flex;align-items:center;gap:8px;padding:0 12px;height:34px;flex:none;
   border-bottom:1px solid var(--cd-lineS);background:var(--cd-panel2);
@@ -3907,7 +3907,7 @@
 .cd-root .cd-hcrumb b{color:var(--cd-ink);font-weight:600}
 .cd-root .cd-hcrumb:hover b{color:var(--cd-gold)}
 
-/* ---- B. 日记卡封面 ---- */
+/* ---- B. Bìa thẻ nhật ký ---- */
 .cd-root .cd-card-cover{
   position:relative;height:88px;background-size:cover;background-position:center 26%;
   background-repeat:no-repeat;border-radius:8px 8px 0 0;overflow:hidden;
@@ -3925,7 +3925,7 @@
 .cd-root .cd-diary-card.has-cover > .cd-card-summary{border-radius:0 0 8px 8px}
 .cd-root .cd-diary-card[open].has-cover > .cd-card-summary{border-radius:0}
 
-/* ---- B. 存档槽封面 ---- */
+/* ---- B. Bìa ô lưu trữ ---- */
 .cd-root .cd-save-slot.has-cover{overflow:hidden}
 .cd-root .cd-save-slot-thumb.has-cover,
 .cd-root .cd-sv-slot-thumb.has-cover{
@@ -3934,44 +3934,44 @@
 .cd-root .cd-save-slot-thumb.has-cover > i,
 .cd-root .cd-sv-slot-thumb.has-cover > i{display:none}
 
-/* ---- C. 抽屉半屏档 ---- */
+/* ---- C. Mức nửa màn hình ngăn kéo ---- */
 @media (max-width:620px){
   .cd-root .cd-hdr.on{transform:translateY(0)}
   .cd-root .cd-toolbar.cd-toolbar-slim{height:32px;padding:0 9px}
 }
 
 /* ★ FIX3 CSS */
-/* ★ FIX3 1/3 抽屉关闭钮：原来只有点遮罩能关（因为叉是动态 innerHTML，事件没绑上），现已改事件委托。
-   这里只补上手型与点击热区，保证点得到。 */
+/* ★ FIX3 1/3 Nút đóng ngăn kéo: trước đây chỉ bấm mask mới đóng được (vì dấu X là innerHTML động, sự kiện không gắn được), nay đã đổi sang ủy quyền sự kiện.
+   Ở đây chỉ bổ sung con trỏ tay và vùng bấm, đảm bảo bấm trúng. */
 .cd-root .cd-hd-x{cursor:pointer;position:relative;z-index:2}
 
-/* ★ FIX3 2/3 概括条左右轻摆（用户要的“左右晃动的名片”） */
+/* ★ FIX3 2/3 Thanh khái quát lắc nhẹ trái phải (“danh thiếp lắc trái phải” người dùng muốn) */
 @keyframes cdSway{from{transform:translateX(-2.5px) rotate(-.28deg)}to{transform:translateX(2.5px) rotate(.28deg)}}
 .cd-root .cd-intro{animation:cdSway 6s ease-in-out infinite alternate;will-change:transform}
 .cd-root .cd-intro.pause{animation-play-state:paused}
 @media (prefers-reduced-motion:reduce){.cd-root .cd-intro{animation:none}}
 
-/* ★ FIX3 3/3 首页概括条下方留点空隙（原来紧跑卡片网格） */
+/* ★ FIX3 3/3 Dưới thanh khái quát trang chủ chừa chút khoảng trống (trước đây sát lưới thẻ) */
 .cd-root .cd-hsec{margin-top:2px}
 
 /* ★ FIX4 CSS */
-/* ★ FIX4：概括条带角色的脸——左边立绘，右边四个真实数字，遮罩保证字可读 */
+/* ★ FIX4: Thanh khái quát có khuôn mặt nhân vật — bên trái tranh đứng, bên phải bốn con số thật, mặt nạ đảm bảo chữ đọc được */
 .cd-root .cd-ov.has-face{
   position:relative;overflow:hidden;min-height:92px;padding:12px 14px 12px 106px;
   background-size:cover;background-position:center 22%;background-repeat:no-repeat;
   border-color:var(--cd-line);
 }
-/* 右侧数字区：96px 之后一律纯 panel2 实色，绝不会压在图上 */
+/* Vùng số bên phải: sau 96px đều là màu đặc panel2 thuần, tuyệt đối không đè lên ảnh */
 .cd-root .cd-ov.has-face::before{
   content:'';position:absolute;left:96px;right:0;top:0;bottom:0;pointer-events:none;
   background:var(--cd-panel2);
 }
-/* 左侧底纹压一点中性灰，浅深两套皮肤都匹配 */
+/* Vân nền bên trái ép chút xám trung tính, hợp với cả hai bộ skin sáng tối */
 .cd-root .cd-ov.has-face::after{
   content:'';position:absolute;left:0;top:0;bottom:0;width:96px;pointer-events:none;
   background:linear-gradient(90deg,rgba(127,127,127,.20),rgba(127,127,127,.06));
 }
-/* 头像块：view avatar 图，脸必在 */
+/* Khối ảnh đại diện: ảnh avatar của view, mặt nhất định có */
 .cd-root .cd-ov-face{
   position:absolute;left:10px;top:50%;transform:translateY(-50%);z-index:1;
   width:76px;height:76px;border-radius:13px;background-size:cover;background-position:center 18%;
@@ -3986,11 +3986,11 @@
 }
 
 /* ★ FIX5 CSS */
-/* FIX5 CSS 见上 */
+/* CSS của FIX5 xem ở trên */
 
-/* ★ FIX7 CSS：抽屉照源文件只有一档，.on 即完整展开（右侧 466px 全高 / 手机全宽）；
-   peek 折叠、∨/∧ 按钮、拖拽条全部删除——那些都是自作主张加的，源文件里没有。 */
-/* ===== 通知条 · 顶部居中细条 + 日志批次卡 ===== */
+/* ★ CSS FIX7: ngăn kéo theo file nguồn chỉ có một mức, .on là mở hoàn toàn (bên phải 466px toàn chiều cao / điện thoại toàn chiều rộng);
+   gập peek, nút ∨/∧, thanh kéo đều đã xóa — những thứ đó đều là tự ý thêm vào, file nguồn không có. */
+/* ===== Thanh thông báo · dải mảnh căn giữa trên cùng + thẻ đợt nhật ký log ===== */
 #cd-notify-stack{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:2147483000;
   display:flex;flex-direction:column;gap:7px;align-items:stretch;pointer-events:none;
   width:max-content;max-width:min(560px,92vw)}
@@ -4045,22 +4045,22 @@
 .cd-logv-acts .cd-btn-secondary{padding:3px 10px;font-size:11px;min-width:auto}
 .cd-logv-rows{padding:0 11px 10px;border-top:1px solid var(--lineS,#efe7d8);max-height:340px;overflow:auto}
 
-/* ===== FIX10 CSS：开关可辨识 + 键盘可达 ===== */
-/* 1) 四套日间皮肤的皮肤层用 !important 盖掉了 :checked 背景，
-      导致开关「开」和「关」颜色完全一样，只剩滑块位移一个线索 —— 这里补回来。 */
+/* ===== CSS FIX10: công tắc dễ nhận biết + bàn phím truy cập được ===== */
+/* 1) Lớp skin của bốn bộ skin ban ngày dùng !important đè mất nền :checked,
+      khiến màu “bật” và “tắt” của công tắc giống hệt nhau, chỉ còn mỗi manh mối vị trí con trượt — ở đây bổ sung lại. */
 .cd-root.cd-night .cd-switch input:checked + .cd-slider,
 .cd-root.cd-day1 .cd-switch input:checked + .cd-slider,
 .cd-root.cd-day2 .cd-switch input:checked + .cd-slider,
 .cd-root.cd-day3 .cd-switch input:checked + .cd-slider,
 .cd-root.cd-day .cd-switch input:checked + .cd-slider{
   background:linear-gradient(180deg,#d8bd8a,#c9a86a)!important;border-color:#bfa274!important}
-/* 2) 原生 checkbox 原来是 display:none，39 个开关全都无法 Tab 聚焦、读屏读不到 —— 改为视觉隐藏但可聚焦 */
+/* 2) Checkbox gốc trước đây là display:none, cả 39 công tắc đều không Tab focus được, trình đọc màn hình không đọc được — đổi thành ẩn thị giác nhưng focus được */
 .cd-switch input{position:absolute!important;opacity:0!important;width:100%!important;height:100%!important;
   margin:0!important;cursor:pointer;display:block!important}
 .cd-switch{position:relative}
 .cd-switch input:focus-visible + .cd-slider{outline:2px solid var(--gold,#c9a86a);outline-offset:2px}
 
-/* ===== 存档界面 · 全局化 + 清晰化（FIX12）===== */
+/* ===== Giao diện lưu trữ · toàn cục hóa + rõ ràng hóa (FIX12) ===== */
 #cd-content .cd-sv-top{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin:2px 2px 12px;}
 #cd-content .cd-sv-ttl{font-size:15px;font-weight:700;color:var(--cd-ink);}
 #cd-content .cd-sv-ttl i{color:var(--cd-gold);margin-right:6px;}
@@ -4162,16 +4162,16 @@
 #cd-content .cd-sv-memo-lbl{font-size:10.5px;color:var(--cd-ink3);margin:2px 0 6px;}
 #cd-content .cd-sv-memo-list{max-height:180px;overflow-y:auto;border:1px solid var(--cd-line);
   border-radius:8px;padding:4px 10px;background:var(--cd-panel2);box-sizing:border-box;}
-/* ===== 存档界面 FIX12 结束 ===== */
+/* ===== Kết thúc giao diện lưu trữ FIX12 ===== */
 
-/* ===== FIX13 · 已归档楼层（替代 reloadCurrentChat 的局部 DOM 标记）=====
-   隐藏楼层不再重载整个 #chat，改为给 .mes 挂 .cd-floor-archived：
-   内容压暗 + 右上角「已归档」标签。AI 侧已因 is_system=true 跳过这些楼层。 */
+/* ===== FIX13 · Tầng đã lưu trữ (thay đánh dấu DOM cục bộ của reloadCurrentChat) =====
+   Ẩn tầng không còn tải lại cả #chat, đổi thành gắn .cd-floor-archived cho .mes:
+   nội dung làm tối + nhãn “Đã lưu trữ” góc trên phải. Phía AI đã bỏ qua các tầng này do is_system=true. */
 .mes.cd-floor-archived { position: relative; }
 .mes.cd-floor-archived > * { opacity: .45; }
 .mes.cd-floor-archived > .mes_block:hover { opacity: 1; }
 .mes.cd-floor-archived::after {
-  content: "已归档";
+  content: "Đã lưu trữ";
   position: absolute; right: 10px; top: 4px; z-index: 6;
   pointer-events: none;
   font-size: 10px; line-height: 1.7; letter-spacing: .3px;
@@ -4179,9 +4179,9 @@
   color: #9a9488; background: rgba(128, 128, 128, .13);
   border: 1px solid rgba(128, 128, 128, .22);
 }
-/* ===== FIX13 结束 ===== */
+/* ===== Kết thúc FIX13 ===== */
 
-/* ===== FIX14 通知条：窄屏（手机）适配 + 减少动效 ===== */
+/* ===== Thanh thông báo FIX14: thích ứng màn hình hẹp (điện thoại) + giảm hiệu ứng động ===== */
 @media (max-width:620px){
   #cd-notify-stack{width:calc(100vw - 20px);max-width:calc(100vw - 20px);top:8px;gap:6px}
   .cd-notify{min-width:0;padding:9px 10px 9px 11px;border-radius:12px}

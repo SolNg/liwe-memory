@@ -1,14 +1,14 @@
 // ============================================================
-// 角色日记 插件 v2.0.0 — API 调用层
-// 路径: SillyTavern/extensions/character-diary/api.js
+// Plugin Nhật ký nhân vật v2.0.0 — Tầng gọi API
+// Đường dẫn: SillyTavern/extensions/character-diary/api.js
 // ============================================================
 'use strict';
 
 /**
- * 统一入口: 根据 settings.source 路由到对应 API 实现
+ * Lối vào thống nhất: định tuyến theo settings.source đến bản thực hiện API tương ứng
  * @param {Array<{role:string,content:string}>} messages
  * @param {object} s - settings
- * @returns {Promise<string>} AI 返回的文本
+ * @returns {Promise<string>} văn bản AI trả về
  */
 async function cdApiComplete(messages, s) {
   switch (s.source) {
@@ -16,11 +16,11 @@ async function cdApiComplete(messages, s) {
     case 'openai': return callOpenAI(messages, s.endpoints.openai, s);
     case 'claude': return callClaude(messages, s.endpoints.claude, s);
     case 'gemini': return callGemini(messages, s.endpoints.gemini, s);
-    default: throw new Error('未知接口来源: ' + s.source);
+    default: throw new Error('Nguồn API không xác định: ' + s.source);
   }
 }
 
-/** 跟随酒馆当前连接 */
+/** Theo kết nối hiện tại của SillyTavern */
 async function callTavern(messages, _s) {
   const ordered = messages.map(m => ({ role: m.role, content: m.content }));
   if (typeof generateRaw === 'function') {
@@ -88,7 +88,7 @@ async function callGemini(messages, ep, s) {
   return (j.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('');
 }
 
-/** 拉取模型列表 (非酒馆接口时使用) */
+/** Lấy danh sách mô hình (dùng khi không phải API của SillyTavern) */
 async function cdFetchModels(source, ep) {
   const base = ep.url.replace(/\/+$/, '');
   try {
@@ -108,7 +108,7 @@ async function cdFetchModels(source, ep) {
       return (j.models || []).map(m => (m.name || '').replace(/^models\//, ''));
     }
   } catch (e) {
-    toastr.error('[角色日记] 拉取模型列表失败: ' + e.message);
+    toastr.error('[Nhật ký nhân vật] Lấy danh sách mô hình thất bại: ' + e.message);
   }
   return [];
 }
