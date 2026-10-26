@@ -20820,7 +20820,7 @@ function cdLoveApiMsg(systemText, userText, temp){
   return cdWithTimeout(cdApiComplete([
     {role:'system', content:systemText},
     {role:'user', content:userText}
-  ], {temperature:(temp!==undefined?temp:0.9)}), 120000, 'Tạo duyên gặp');
+  ], {temperature:(temp!==undefined?temp:0.9)}), 120000, 'Tạo duyên gặp').then(function(r){ return (r && typeof r==='object' && 'text' in r) ? r.text : r; });
 }
 /* Hội thoại xem mắt: prompt cốt lõi */
 var CD_LOVE_CHAT_SYS = function(partner, isRoster, mode, distrust, love){
