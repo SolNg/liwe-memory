@@ -6122,7 +6122,7 @@ if (arc.unresolved !== undefined) {
             }
             cdAddLog('info', '[Viết lại hồ sơ] Đã hủy hồ sơ rỗng của lượt này, chuyển sang viết lại bằng chế độ riêng (có jailbreak, không bị nhật ký gây nhiễu)');
             // 2) Request lại một lần bằng chế độ hồ sơ riêng (lưu ý: có thể ném lỗi, cần bắt)
-            const _rwMsgs = cdBuildArchivePrompt(windowFloors, data, s, false);
+            const _rwMsgs = await cdBuildArchivePrompt(windowFloors, data, s, false); // hàm async: thiếu await thì truyền Promise vào → "messages.map is not a function"
             const _rwRes = await _cdCallApi('Viết lại hồ sơ', _rwMsgs);
             const _rwArc = parseArchiveJson(_rwRes.text, customDefs);
             const _rwHas = (_rwArc.mainline || _rwArc.sideline || _rwArc.states || _rwArc.unresolved || (customDefs.length && Object.keys(_rwArc.custom||{}).length) || _rwArc.title || _rwArc.lead);
@@ -13484,7 +13484,7 @@ async function cdRenderSettings() {
         }
       }
       if (!_floors.length) { if (typeof toastr === 'function') toastr.warning('Không có tầng đã tóm tắt nào để viết lại (lô này rỗng)'); return; }
-      const _msgs = cdBuildArchivePrompt(_floors, _d, _s, false);
+      const _msgs = await cdBuildArchivePrompt(_floors, _d, _s, false);
       const _res = await cdWithTimeout(cdApiComplete(_msgs, _s), 120000, 'Viết lại hồ sơ');
       const _arc = parseArchiveJson(_res.text, Array.isArray(_s.customFields) ? _s.customFields : []);
       const _has = (_arc.mainline || _arc.sideline || _arc.states || _arc.unresolved || _arc.title || _arc.lead);
