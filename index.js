@@ -872,6 +872,35 @@ async function callTavern(messages, _s) {
 }
 
 
+/** Chuyển tiếp request tương thích OpenAI qua backend của Tavern (vượt CORS), giữ nguyên địa chỉ/model/khóa của plugin */
+async function cdCallViaTavernBackend(messages, base, ep, s) {
+  const ctx = (typeof SillyTavern !== 'undefined' && SillyTavern.getContext) ? SillyTavern.getContext() : null;
+  const hdr = (ctx && typeof ctx.getRequestHeaders === 'function') ? ctx.getRequestHeaders() : { 'Content-Type': 'application/json' };
+  const body = {
+    chat_completion_source: 'custom',
+    custom_url: base,
+    model: ep.model,
+    messages: messages.map(function (m) { return { role: m.role, content: m.content }; }),
+    temperature: s.temperature,
+    max_tokens: 8192,
+    stream: false,
+  };
+  // Khóa của plugin gửi qua custom_include_headers (YAML; JSON cũng là YAML hợp lệ), ghi đè khóa custom lưu trong Tavern
+  if (ep.key) body.custom_include_headers = JSON.stringify({ Authorization: 'Bearer ' + ep.key });
+  const res = await fetch('/api/backends/chat-completions/generate', { method: 'POST', headers: hdr, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error('Proxy backend ' + res.status + ': ' + await textOr(res));
+  const j = await res.json();
+  if (j && j.error) throw new Error('Proxy backend: ' + String((j.error && j.error.message) || JSON.stringify(j.error)).slice(0, 200));
+  if (j && j.usage) {
+    _cdLastTokenUsage = { prompt: j.usage.prompt_tokens || 0, completion: j.usage.completion_tokens || 0, total: j.usage.total_tokens || 0,
+      cacheHit: j.usage.prompt_cache_hit_tokens || (j.usage.prompt_tokens_details && j.usage.prompt_tokens_details.cached_tokens) || 0,
+      cacheMiss: j.usage.prompt_cache_miss_tokens || 0 };
+  }
+  const m0 = (j && j.choices && j.choices[0]) ? (j.choices[0].message || {}) : {};
+  const txt = m0.content || m0.reasoning_content || (j && j.choices && j.choices[0] && j.choices[0].text) || '';
+  if (typeof cdAddLog === 'function') cdAddLog('api_req', '[API] Proxy backend (nguồn custom, model ' + (ep.model || '?') + ')');
+  return String(txt || '');
+}
 async function callOpenAI(messages, ep, s) {
   const base = String(ep.url || '').replace(/\/+$/, '');
   if (!base) throw new Error('OpenAI chưa cấu hình địa chỉ API');
@@ -879,11 +908,14 @@ async function callOpenAI(messages, ep, s) {
   //   (generateRaw / sendGenerationRequest) để chuyển tiếp, vượt qua chặn CORS/preflight của trình duyệt (một số gateway fetch từ front-end chắc chắn thất bại).
   //   Model lấy theo gateway người dùng điền; nếu kết nối hiện tại của Tavern đã cấu hình là nguồn tương thích đó thì ngữ nghĩa tương đương, không lẫn model chính.
   if (s.backendProxy) {
+    // Trước đây gọi callTavern (generateRaw) → dùng model của kết nối CHÍNH đang bật trong Tavern, bỏ qua model/địa chỉ/khóa đã điền ở đây.
+    // Giờ nhờ backend Tavern chuyển tiếp với nguồn “custom” mang đúng địa chỉ + model + khóa của plugin.
     try {
-      const bp = await callTavern(messages, s);
+      const bp = await cdCallViaTavernBackend(messages, base, ep, s);
       if (bp) return bp;
     } catch (e1) {
       cdWarn('Thử proxy backend (kênh Tavern) thất bại, quay lại kết nối trực tiếp: ' + (e1 && e1.message));
+      if (typeof cdAddLog === 'function') cdAddLog('warn', '[API] Proxy backend thất bại, thử kết nối trực tiếp (không dùng model chính của Tavern)', { err: (e1 && e1.message) || String(e1) });
     }
   }
   // ★ Hạ cấp thông minh (phương án A, v2.6.3): server của các gateway như opencode.ai không trả header CORS,
@@ -13316,7 +13348,7 @@ async function cdRenderSettings() {
             <div class="cds-row"><span class="cds-lab">Model</span><span class="cds-ctrl"><input type="text" id="cd-s-model" value="${apiModel}" class="cd-input" list="cd-models" placeholder="Tên model" style="width:auto;min-width:180px;text-align:left;"><datalist id="cd-models"></datalist></span></div>
             <button class="cd-btn-secondary" id="cd-btn-fetch-models" style="font-size: calc(0.62rem * var(--cd-fs, 1));min-width:auto;">Lấy các model khả dụng</button>
             <div class="cds-row"><span class="cds-lab"><i class="fa-regular fa-tower-broadcast" style="margin-right:4px;color:var(--cd-acc,#5b7fa6);"></i>Kết nối qua proxy backend</span><span class="cds-ctrl"><label class="cd-switch"><input type="checkbox" id="cd-s-backend-proxy"${s.backendProxy ? 'checked' : ''}><span class="cd-slider"></span></label></span></div>
-            <div class="cds-hint" style="margin-top:2px;font-size: calc(0.55rem * var(--cd-fs, 1));color:#8b7355;opacity:0.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Khi kết nối trực tiếp bị CORS/preflight chặn thì chuyển tiếp qua kênh backend của Tavern; hãy cấu hình gateway thành nguồn kết nối tương thích trong Tavern, tránh đi nhầm nguồn</div>
+            <div class="cds-hint" style="margin-top:2px;font-size: calc(0.55rem * var(--cd-fs, 1));color:#8b7355;opacity:0.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Khi kết nối trực tiếp bị CORS/preflight chặn thì nhờ backend của Tavern chuyển tiếp; vẫn dùng đúng địa chỉ, khóa và model điền ở đây, không dùng model của kết nối chính</div>
           </div>
         </div>
       </details>
