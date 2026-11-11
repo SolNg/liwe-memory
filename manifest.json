@@ -2,7 +2,7 @@
   "display_name": "LIWE · Engine ký ức RAG",
   "name": "character-diary",
   "id": "character-diary",
-  "version": "2.18.2",
+  "version": "2.20.0",
   "description": "Tự động viết nhật ký ngôi thứ nhất cho từng nhân vật trong cốt truyện, tạo hồ sơ cốt truyện và hướng dẫn nhân vật trọng điểm (bản dịch tiếng Việt của SillyTavern-Plugin-HCDiary). Có “Diễn đàn Thế giới · Cộng đồng xuyên thế giới”: luồng bài xuyên thế giới, nhật ký riêng tư của nhân vật (lén xem bị khóa + xin lỗi công khai để mở khóa), tái hiện IP đồng nhân, tạo ảnh thật (thư viện/xem ảnh/album/12 phong cách vẽ/prompt sửa được). Tăng cường “Đài tiêm nghi thức” (hệ phù khế): xúc xắc vận mệnh/engine hảo cảm/đạn mạc/diễn đàn/tạo front-end. Giao diện một cột kiểu Xiaohongshu, phối màu dịu mắt, liên động sổ thế giới, truy xuất vector + Rerank, di chuyển toàn bộ. v2.11.0: viết lại nhật ký nhân vật thành nhật ký nội tâm riêng tư 300~520 chữ có hơi người; thêm lối vào diễn đàn và mũi tên về ký ức; sửa lỗi lệch mốc neo ký ức. v2.14.0: viết lại prompt nhật ký, thêm hai mức đơn giản/phức tạp, tự tóm tắt có độ trễ lệch giờ (mặc định 20 giây), nén hồ sơ “thu gọn không cắt chi”. v2.15.x: âm báo khi AI trả lời xong (có thể tải âm thanh riêng, chọn thời điểm kích hoạt), sửa xóa hàng loạt dòng thời gian, cuộn mượt về đầu sau khi trả lời, giới hạn phình địa điểm.",
   "type": "extension",
   "js": "index.js",
