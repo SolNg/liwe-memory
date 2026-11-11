@@ -780,6 +780,21 @@ function cdWarn(...args) {
    Ở đây xét “lần này có gửi cho Gemini không”, để quyết định có bù user ở cuối hay không. */
 function cdTrailIsGemini(effSrc, s) {
   if (effSrc === 'gemini') return true;
+  /* Kênh Tavern: bản gốc không xét được model nên không bao giờ bù user → model chính của Tavern là Gemini 3.6+ vẫn bị 400.
+     Đọc model của kết nối chính Tavern (nguồn Google, hoặc tên model có gemini/gemma). */
+  if (effSrc === 'tavern') {
+    try {
+      const ctx = (typeof SillyTavern !== 'undefined' && SillyTavern.getContext) ? SillyTavern.getContext() : null;
+      if (!ctx) return false;
+      let md = '';
+      try { if (typeof ctx.getChatCompletionModel === 'function') md = String(ctx.getChatCompletionModel() || ''); } catch (e) {}
+      const cs = ctx.chatCompletionSettings || {};
+      const src = String(cs.chat_completion_source || '');
+      if (/^(makersuite|vertexai)$/.test(src)) return true;
+      if (!md) md = String(cs[src + '_model'] || cs.model || '');
+      return /gemini|gemma/i.test(md);
+    } catch (e) { return false; }
+  }
   try {
     const md = (effSrc && effSrc !== 'tavern' && s && s.endpoints && s.endpoints[effSrc])
       ? String(s.endpoints[effSrc].model || '') : '';
