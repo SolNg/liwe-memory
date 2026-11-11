@@ -11209,7 +11209,8 @@ function cdApplySettingHelp(root) {
       q.textContent = '?';
       q.setAttribute('role', 'button');
       q.setAttribute('title', 'Bấm để xem mục này dùng để làm gì');
-      q.onclick = (function (rowEl) {
+      // Truyền lines vào closure: bản gốc dùng `var lines` chung cho cả vòng lặp → mọi nút “?” đều hiện giải thích của dòng cuối cùng
+      q.onclick = (function (rowEl, lines) {
         return function (e) {
           if (e && e.stopPropagation) e.stopPropagation();
           var box = rowEl.nextElementSibling;
@@ -11227,7 +11228,7 @@ function cdApplySettingHelp(root) {
           if (rowEl.parentNode) rowEl.parentNode.insertBefore(d, rowEl.nextSibling);
           n++;
         };
-      })(row);
+      })(row, lines);
       lab.appendChild(q);
       n++;
     }
