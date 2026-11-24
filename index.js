@@ -480,6 +480,7 @@ const DEFAULT_SETTINGS = {
   diaryBlacklist  : [],           // Danh sách đen nhật ký nhân vật: tên (trùng khớp hoàn toàn) thì không bao giờ viết nhật ký/lưu ký ức cho họ
   maxWindowFloors : 40,           // Số tầng tối đa xem lại trong một lần
   temperature     : 0.7,          // Nhiệt độ (temperature) API khi viết nhật ký
+  maxTokens       : 0,            // Giới hạn max_tokens đầu ra (0 = Tự động: Gemini 2.5+/3.x 65536, model suy nghĩ khác 32768, model thường 8192; hoặc nhập thủ công)
   mainCardIsGM    : true,         // Thẻ chính là người dẫn truyện GM, không viết nhật ký cho nó (mặc định bật)
   source          : 'tavern',     // 'tavern' | 'openai' | 'claude' | 'gemini'
   fabShow         : true,         // Có hiển thị nút nổi hay không
@@ -834,6 +835,25 @@ function cdNormalizeTrailingTurn(messages, effSrc, s) {
   return out;
 }
 
+/* ★ FIX32: Tính giới hạn max_tokens / maxOutputTokens phù hợp (tránh lỗi chạm 8192 trên model suy nghĩ Gemini)
+   - Người dùng đặt thủ công (>= 256): dùng đúng giá trị đó.
+   - Để 0 (Tự động): Gemini 2.5+/3.x & model suy nghĩ của Google dùng 65536 (vì token suy nghĩ nằm chung trong max_tokens);
+     model suy luận khác dùng 32768; GPT-4o/4.1/5 dùng 16384; model thường giữ 8192 để tương thích an toàn. */
+function cdResolveMaxTokens(effSrc, ep, s) {
+  var cfg = s && Number(s.maxTokens);
+  if (Number.isFinite(cfg) && cfg >= 256) return Math.min(131072, Math.floor(cfg));
+  var md = String((ep && ep.model) || '').toLowerCase();
+  if (effSrc === 'gemini' || /gemini|gemma/i.test(md)) {
+    if (/gemini-1\.|gemini-2\.0/i.test(md) && !/thinking/i.test(md)) return 8192;
+    return 65536;
+  }
+  if (/(?:^|[-_/])(o1|o3|o4)(?:$|[-_/.])|reasoner|deepseek-r1|\br1\b|thinking|qwq|claude-(?:3-7|sonnet-4|opus-4|4)/i.test(md)) {
+    return 32768;
+  }
+  if (/gpt-4\.1|gpt-4o|gpt-5/i.test(md)) return 16384;
+  return 8192;
+}
+
 async function cdApiComplete(messages, s) {
   const start = Date.now();
   let text;
@@ -1006,7 +1026,7 @@ async function cdCallViaTavernBackend(messages, base, ep, s) {
     model: ep.model,
     messages: messages.map(function (m) { return { role: m.role, content: m.content }; }),
     temperature: s.temperature,
-    max_tokens: 8192,
+    max_tokens: cdResolveMaxTokens('openai', ep, s),
     stream: false,
   };
   // Khóa của plugin gửi qua custom_include_headers (YAML; JSON cũng là YAML hợp lệ), ghi đè khóa custom lưu trong Tavern
@@ -1059,7 +1079,7 @@ async function callOpenAI(messages, ep, s) {
           return { role: _mm0.role, content: _carr0 };
         }
         return { role: _mm0.role, content: _mm0.content };
-      }), temperature: s.temperature, max_tokens: 8192, stream: false }),
+      }), temperature: s.temperature, max_tokens: cdResolveMaxTokens('openai', ep, s), stream: false }),
     });
     if (!res.ok) {
       // 4xx/5xx là vấn đề của API hoặc khóa, không hạ cấp (tránh che giấu lỗi thật)
@@ -1219,7 +1239,7 @@ async function callClaude(messages, ep, s) {
   const res = await fetch(`${base}/messages`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': ep.key, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: ep.model, system, messages: msgs, max_tokens: 8192, temperature: s.temperature }),
+    body: JSON.stringify({ model: ep.model, system, messages: msgs, max_tokens: cdResolveMaxTokens('claude', ep, s), temperature: s.temperature }),
   });
   if (!res.ok) throw new Error(`Claude ${res.status}: ${await textOr(res)}`);
   const j = await res.json();
@@ -1242,9 +1262,10 @@ async function callGemini(messages, ep, s) {
     });
     return { role: m.role === 'assistant' ? 'model' : 'user', parts: _parts };
   });
+  const _gMaxTok = cdResolveMaxTokens('gemini', ep, s);
   const body = {
     contents,
-    generationConfig: { temperature: s.temperature, maxOutputTokens: 8192 },
+    generationConfig: { temperature: s.temperature, maxOutputTokens: _gMaxTok },
     safetySettings: [
       { category: 'HARM_CATEGORY_HARASSMENT',        threshold: 'BLOCK_NONE' },
       { category: 'HARM_CATEGORY_HATE_SPEECH',       threshold: 'BLOCK_NONE' },
@@ -1268,14 +1289,25 @@ async function callGemini(messages, ep, s) {
     throw new Error(`Gemini ${res.status}: ${_gErr}`);
   }
   const j = await res.json();
-  var _gparts = (j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts) || [];
-  var _gTxt = _gparts.map(p => p.text || '').join('');
-  if (!_gTxt && j.candidates && j.candidates[0]) {
-    // Model suy luận có thể đặt nội dung ở thoughts/reasoning, hoặc trong parts thiếu text
-    var _gC = j.candidates[0];
-    if (_gC.thoughts && Array.isArray(_gC.thoughts)) _gTxt = _gC.thoughts.map(function(t){ return t&&t.content||''; }).filter(Boolean).join('');
-    if (!_gTxt && _gC.content && Array.isArray(_gC.content.parts)) {
-      _gTxt = _gC.content.parts.map(function(p){ if(!p) return ''; return p.text||p.inline_data||''; }).filter(function(x){return typeof x==='string' && x;}).join('');
+  if (j.usageMetadata) {
+    var _um = j.usageMetadata;
+    var _gPrompt = _um.promptTokenCount || 0;
+    var _gComp = (_um.candidatesTokenCount || 0) + (_um.thoughtsTokenCount || 0);
+    _cdLastTokenUsage = { prompt: _gPrompt, completion: _gComp, total: _um.totalTokenCount || (_gPrompt + _gComp),
+      cacheHit: _um.cachedContentTokenCount || 0, cacheMiss: 0 };
+  }
+  var _gC0 = (j.candidates && j.candidates[0]) || null;
+  var _gparts = (_gC0 && _gC0.content && _gC0.content.parts) || [];
+  // Ưu tiên lấy phần nội dung chính (bỏ qua part suy nghĩ có thought: true)
+  var _gTxt = _gparts.filter(function(p){ return p && !p.thought; }).map(function(p){ return p.text || ''; }).join('');
+  if (!_gTxt && _gC0) {
+    if (_gC0.finishReason === 'MAX_TOKENS') {
+      throw new Error('Gemini dừng vì chạm giới hạn maxOutputTokens (' + _gMaxTok + ') trước khi xuất nội dung (model suy nghĩ cũng tiêu token trong giới hạn này). Hãy tăng “Giới hạn token đầu ra” trong Thiết lập.');
+    }
+    // Dự phòng nếu model suy luận đặt nội dung ở thought/thoughts
+    if (_gC0.thoughts && Array.isArray(_gC0.thoughts)) _gTxt = _gC0.thoughts.map(function(t){ return t&&t.content||''; }).filter(Boolean).join('');
+    if (!_gTxt && _gC0.content && Array.isArray(_gC0.content.parts)) {
+      _gTxt = _gC0.content.parts.map(function(p){ if(!p) return ''; return p.text||p.inline_data||''; }).filter(function(x){return typeof x==='string' && x;}).join('');
     }
   }
   return String(_gTxt || '');
@@ -5593,7 +5625,8 @@ async function cdTestApiProbe() {
   cdAddLog('info', '[Thăm dò API] Bắt đầu thử API hiện tại', { 'Nguồn': src, 'Địa chỉ': url0 || '(trống)', 'Mô hình': mod0 || '(trống)' });
   if (!url0) { cdAddLog('warn', '[Thăm dò API] Chưa điền địa chỉ API, hãy điền trong mục nguồn API ở trên trước'); return; }
   const base = url0.replace(/\/+$/, '');
-  const body = { model: mod0 || '', messages: [{ role: 'user', content: 'ping' }], max_tokens: 5, stream: false };
+  const _probeMax = /gemini|gemma|o1|o3|o4|reasoner|r1|thinking/i.test(mod0) ? 1024 : 16;
+  const body = { model: mod0 || '', messages: [{ role: 'user', content: 'ping' }], max_tokens: _probeMax, stream: false };
   const startMs = Date.now();
   try {
     const res = await fetch(base + '/chat/completions', {
@@ -11110,6 +11143,9 @@ const CD_SETTING_HELP = {
   'cd-s-temp': ['Độ ngẫu nhiên khi tóm tắt (temperature).',
                 '0.3 ~ 0.5 ổn định nhất: khó lạc đề, khó bịa chi tiết.',
                 'Đặt trên 1 hồ sơ sẽ bắt đầu lan man; đừng đặt 0, một số model sẽ trả về rỗng luôn.'],
+  'cd-s-maxtokens': ['Giới hạn token đầu ra tối đa (max_tokens / maxOutputTokens) cho API kết nối trực tiếp.',
+                     'Để 0 = Tự động (Gemini 2.5+/3.x tự dùng 65536, model suy nghĩ khác 32768, model thường 8192).',
+                     'Model suy nghĩ tính cả token suy nghĩ vào giới hạn này; nếu chạm giới hạn trước khi có nội dung, hãy để 0 hoặc đặt 32768~65536.'],
   'cd-s-diary': ['Tắt rồi thì không sinh nhật ký nhân vật mới nữa.',
                  'Nhật ký đã viết vẫn còn, vẫn xem được, chỉ là không thêm nữa.'],
   'cd-s-archive': ['Tắt rồi thì không sinh hồ sơ cốt truyện nữa, cũng không chèn cho AI nữa.',
@@ -15350,6 +15386,7 @@ async function cdRenderSettings() {
       <div class="cds-row"><span class="cds-lab">Độ lệch mốc ký ức <span class="cds-hint">bỏ qua N tin cuối</span></span><span class="cds-ctrl"><input type="number" id="cd-s-offset" value="${s.memoryOffset === undefined ? 2 : s.memoryOffset}" min="0" max="20" class="cd-input" style="width:52px;"></span></div>
       <div class="cds-row"><span class="cds-lab">Chuyển chính thức nhân vật tạm <span class="cds-hint">xuất hiện N lần</span></span><span class="cds-ctrl"><input type="number" id="cd-s-cameo" value="${s.cameoThreshold}" min="1" max="50" class="cd-input"></span></div>
       <div class="cds-row"><span class="cds-lab">Nhiệt độ tạo</span><span class="cds-ctrl"><input type="number" id="cd-s-temp" value="${s.temperature}" step="0.1" min="0" max="2" class="cd-input"></span></div>
+      <div class="cds-row"><span class="cds-lab">Giới hạn token đầu ra <span class="cds-hint">0 = tự động (Gemini suy nghĩ 65536)</span></span><span class="cds-ctrl"><input type="number" id="cd-s-maxtokens" value="${s.maxTokens || 0}" step="1024" min="0" max="131072" class="cd-input" style="width:76px;"></span></div>
       <div class="cds-row"><span class="cds-lab">Tự động thử lại <span class="cds-hint">thử lại khi thất bại</span></span><span class="cds-ctrl"><input type="number" id="cd-s-retry" value="${s.retryTimes !== undefined ? s.retryTimes : 3}" min="0" max="10" class="cd-input" style="width:46px;"><span class="cds-hint">lần</span><input type="number" id="cd-s-retrydelay" value="${s.retryDelay !== undefined ? s.retryDelay : 2}" min="0" max="30" step="1" class="cd-input" style="width:46px;"><span class="cds-hint">giây</span></span></div>
     </div>
 
@@ -15836,6 +15873,7 @@ async function cdRenderSettings() {
       memoryOffset: (function () { var _v = parseInt($('#cd-s-offset').val(), 10); return Number.isFinite(_v) ? Math.max(0, _v) : 2; })(),
       cameoThreshold: parseInt($('#cd-s-cameo').val(), 10) || 3,
       temperature: (function () { var _v = parseFloat($('#cd-s-temp').val()); return Number.isFinite(_v) ? Math.min(2, Math.max(0, _v)) : 0.7; })(),
+      maxTokens: (function () { var _v = parseInt($('#cd-s-maxtokens').val(), 10); return (Number.isFinite(_v) && _v >= 256) ? Math.min(131072, _v) : 0; })(),
       retryTimes: Math.max(0, parseInt($('#cd-s-retry').val(), 10) || 0),
       retryDelay: Math.max(0, parseFloat($('#cd-s-retrydelay').val()) || 0),
       injectPosition: $('#cd-s-injpos').val() || 'after',
