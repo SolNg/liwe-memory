@@ -240,12 +240,12 @@ function cdCharOptions(cur) {
 const PLUGIN_ID  = 'character-diary';
 const MODAL_ID   = 'cd-modal-root';
 const FAB_ID     = 'cd-fab';
-const PLUGIN_VERSION = '2.20.0';
+const PLUGIN_VERSION = '2.22.2';
 /* ★ FIX23: định danh bản build, dùng để biết người dùng đang chạy lô code nào.
    CD_BUILD = sha ngắn của commit mà bản này dựa trên, kết hợp PLUGIN_VERSION là xác định duy nhất phiên bản;
    lần sau sửa code nhớ cập nhật luôn (không thể tự trỏ sha của chính nó, nên lấy commit nền). */
-const CD_BUILD = '8268fc2';
-const CD_BUILD_DATE = '2026-11-10';
+const CD_BUILD = 'd25c7fd';
+const CD_BUILD_DATE = '2026-11-13';
 const REPO_URL = 'https://api.github.com/repos/SolNg/liwe-memory/releases/latest';
 /* ★ FIX32: hai lối dò cập nhật còn lại.
    —— Nếu chỉ dùng releases/latest, hễ quên tạo Release là “Kiểm tra cập nhật” chết giả vĩnh viễn:
@@ -516,6 +516,9 @@ const DEFAULT_SETTINGS = {
     { start: '', end: '' },
     { start: '<!--', end: '-->' },
   ],
+  // ★ FIX35: danh sách trắng (chỉ giữ). Khi không rỗng sẽ ưu tiên hơn filterTags ở trên ——
+  //   chỉ giữ lại các khối thẻ có tên này, mọi chữ ngoài khối thẻ đều bỏ (mức lọc triệt để nhất theo yêu cầu người dùng).
+  filterKeepTags  : [],
   // ★ FIX15: lọc thẻ chuỗi suy nghĩ/chú thích trong 【nội dung AI trả về】 (mặc định bật).
   //   Bảo vệ nhật ký và hồ sơ cốt truyện không bị quá trình suy luận làm bẩn; tùy chỉnh được, xóa trống danh sách thì không lọc.
   aiFilterEnabled : true,
@@ -537,6 +540,14 @@ const DEFAULT_SETTINGS = {
   autoCompressThreshold : 30,    // Tích lũy bao nhiêu sự kiện thì kích hoạt nén (chế độ count)
   autoCompressSize : 2000,       // Tích lũy bao nhiêu chữ thì kích hoạt nén (chế độ size, tính cả mục theo dõi tùy chỉnh)
   customFields : [],             // Định nghĩa mục theo dõi cốt truyện tùy chỉnh của người dùng [{ key, label, desc }]
+  /* ★ FIX34: tùy chỉnh của người dùng cho ba loại prompt. append = thêm yêu cầu vào cuối prompt gốc;
+     override = tiếp quản toàn bộ (nâng cao, sau khi tiếp quản các tự động thích ứng của prompt đó sẽ mất hiệu lực); useOverride = công tắc tiếp quản.
+     ★ Mặc định đều là chuỗi rỗng/false ⇒ không cấu hình thì hoàn toàn giống trước đây. */
+  promptCustom : {
+    diary   : { append: '', override: '', useOverride: false },
+    archive : { append: '', override: '', useOverride: false },
+    compress: { append: '', override: '', useOverride: false }
+  },
   injectMemo   : true,          // [v2.9.3] Công tắc chèn ghi chú: ghi chú viết tay trên giao diện trạng thái có được chèn cho AI khi hội thoại hay không
   summarySource: 'chat',      // [v2.9.4] Nguồn dữ liệu tự động tóm tắt: 'chat' = hiện có (dùng mảng chat) | 'jsonl' = đọc toàn bộ tầng từ jsonl (trị tận gốc lỗi phân mảnh)
   archiveStyle  : 'dialogue', // [v2.12+] Phong cách ghi hồ sơ cốt truyện: 'dialogue'=bản hội thoại (mỗi sự kiện kèm câu thoại gốc then chốt) | 'plain'=bản thường (chỉ tóm tắt diễn biến sự thật, không trích nguyên văn)
@@ -1414,8 +1425,7 @@ async function cdBuildDiaryPrompt(windowFloors, data, s) {
     }).join('\n');
   }).filter(Boolean).join('\n') : '');
   // ★ Văn bản tầng đã qua lọc thẻ
-  const tags = s.filterTags || [];
-  const scene = windowFloors.map(m => `[#${m.message_id} ${m.name}] ${cdFilterTags(m.mes, tags)}`).join('\n\n');
+  const scene = cdFilteredSceneLines(windowFloors, s).join('\n\n');
 
   // ★ Bắt theo nhân vật xuất hiện (phương án B): regex bắt nhân vật xuất hiện từ cốt truyện, chỉ đẩy nhật ký gần đây của các nhân vật này (thay cho chèn toàn bộ)
   let diaryMemory = memory;
@@ -1453,34 +1463,7 @@ async function cdBuildDiaryPrompt(windowFloors, data, s) {
     } catch (e) { cdWarn('Truy xuất vector nhật ký thất bại (hạ cấp thành ký ức toàn bộ):', e); }
   }
   const _dv = (s && s.diaryVersion === 'lite') ? 'lite' : 'full';
-  const sys = [
-    'Bạn là người ghi chép "Nhật ký nhân vật". Khi đọc cốt truyện, hãy để mỗi nhân vật có tên tuổi và có đất diễn dùng ngôi thứ nhất viết ra điều mình thực sự đang nghĩ trong lòng lúc này.',
-    (typeof data === 'object' && data !== null && typeof data.lastFloor === 'number' && data.lastFloor === -1)
-      ? '- ★★★ Lần này là lần ghi chép【đầu tiên】của đoạn cốt truyện này. 【Lời mở đầu ở tầng 0】ở phần đầu chứa thiết lập bối cảnh, thời gian địa điểm, các nhân vật xuất hiện và trạng thái quan hệ hiện tại giữa họ; hãy lĩnh hội các thiết lập này, nhưng đừng thuật lại lời mở đầu, chỉ hòa lớp bối cảnh này vào tâm cảnh lúc này của nhân vật.'
-      : '',
-    '【Viết cho ai】Chỉ viết cho nhân vật có tên tuổi và có đất diễn. Bỏ qua người qua đường thuần túy; không viết thay người chơi/nhân vật chính.',
-    s.mainCardIsGM ? '- Người dẫn truyện/hệ thống/góc nhìn thượng đế/người kể chuyện kiểu GM thì đừng viết cho họ.' : '',
-    '【Đây là lời tự nhủ viết cho chính mình, không phải báo cáo cốt truyện】',
-    '- Viết theo cảm xúc và tính khí lúc này của nhân vật, đừng như học thuộc bài mà thuật lại hôm nay đã xảy ra chuyện gì. Chỉ viết những gì họ tận mắt thấy, tận tai nghe, tự thân trải nghiệm, và trong lòng thật sự nghĩ như vậy.',
-    '- Lệnh cấm toàn tri: tuyệt đối không được như thượng đế mà nói ra nhân vật khác đang nghĩ gì trong lòng, không được viết tình tiết nhân vật này không biết, chưa trải qua.',
-    '【Phần trọng tâm】Viết ra chuyện trong đoạn cốt truyện này thật sự chạm vào lòng họ —— họ có thể vì chuyện này mà thay đổi cách nhìn về ai đó, ghi thù, rung động, sợ hãi về sau, biết ơn, tức đến bật cười, hoặc tự cà khịa bản thân một trận ra trò; cũng có thể chỉ là trong lòng chợt thót một cái, cái mùi vị mà chính họ cũng không nói rõ được. Đi theo phản ứng mà nhân vật đó nên có: vui thì vui, chua thì chua, nhận thì nhận, giận thì giận. Điểm mấu chốt là chuyện này mang theo cảm xúc rơi vào lòng họ, khiến họ có chút cách nhìn hoặc thái độ mới về một người nào đó hoặc về chính mình.',
-    '【Giọng điệu】Như một mình lẩm bẩm lúc đêm khuya: có thể có ẩn ý, nói nửa chừng rồi nuốt lại, đột nhiên tự giễu một câu, hoặc cứng miệng hai câu; sẽ lặp đi lặp lại, sẽ mâu thuẫn —— con người vốn là như vậy. Đừng văn vẻ, đừng giọng quan cách, đừng câu nào cũng giải thích vì sao.',
-    '【Ký ức】Nhớ lại chuyện cũ thì thêm một câu hô ứng, không nhớ thì thôi, không gượng ép.',
-    '【Ngôn ngữ】Theo ngôn ngữ chính của đoạn cốt truyện.',
-    '【Tình tiết lộ liễu】Tình dục/bạo lực... chỉ lướt qua bằng một câu (như "đã quan hệ với anh ấy", "bị hắn khống chế"), nghiêm cấm miêu tả chi tiết động tác, cơ quan, dịch thể. Nhật ký ghi cảm nhận và phán đoán, không phải tái hiện quá trình.',
-    (_dv === 'lite'
-      ? '【Lô này là bản ngắn】Chính văn trong vòng 100 chữ, chỉ viết ba thứ thật cô đọng: ① lúc này trong lòng nghĩ gì (sướng hay không/ấm ức hay không/buông bỏ được chưa) ② chuyện quan trọng nhất hôm nay (một câu lướt qua, mang theo thái độ của họ —— cà khịa/biết ơn/ghi thù/rung động đều được) ③ một điểm ký ức họ muốn giữ lại từ chuyện này. Câu nào ra câu nấy, không chất chồng từ ngữ, không dài dòng.'
-      : '【Lô này là bản đầy đủ】Chính văn 300~520 chữ. Trải ra theo cảm xúc: có thể có hoạt động tâm lý, có giọng điệu, viết chuyện chạm vào lòng họ sao cho có sức nặng. Thà thiếu chứ không ẩu, đừng viết rỗng cho đủ chữ.'),
-    '【Cấu trúc】Chỉ xuất JSON, các trường giữ nguyên, không được cắt bớt:',
-    '{"npcs":[{"name":"Tên chính","aliases":["Bí danh"],"is_minor":false,"date":"Thời gian trong truyện hoặc tầng N","turn":số_tầng,"entry":"Chính văn lời tự nhủ ngôi thứ nhất", "mood":"Tâm trạng (chỉ dùng một trong các từ sau: vui vẻ, buồn bã, tức giận, căng thẳng, bình tĩnh, bối rối, ngạc nhiên, nhớ nhung)","attitude_to_user":"Thái độ với người dùng","secret":"Tâm tư chưa nói ra (có thể trùng với entry nhưng riêng tư hơn, ngắn hơn)","key_events":["Sự kiện then chốt"],"relationship_with_others":{"Nhân vật nào đó":"Mô tả quan hệ"}}]}',
-    'Giải thích các trường:',
-    '- entry: chính là chính văn lời tự nhủ của nhân vật lúc này (viết theo số chữ của bản ngắn/bản đầy đủ ở trên).',
-    '- mood: tâm trạng lúc này; attitude_to_user: thái độ với người dùng; secret: tâm tư chưa nói ra.',
-    '- key_events: sự kiện họ tự thân trải qua và có sức nặng với cá nhân họ.',
-    '- relationship_with_others: ấn tượng của họ về quan hệ giữa mình và người khác (chủ quan, viết theo trải nghiệm của họ, không phải kết luận từ góc nhìn thượng đế).',
-    '- Dùng lại tên chính trong danh sách nhân vật đã biết; nhận ra bí danh thì gộp về tên chính và bổ sung vào aliases.',
-    '- Dùng is_minor để đánh dấu tầm quan trọng của nhân vật: nhân vật chính/nhân vật phụ quan trọng/NPC có tên tuổi và có đất diễn đánh false; người qua đường thuần túy chỉ lộ mặt một hai câu trong đoạn đánh true.',
-  ].filter(Boolean).join('\n');
+  const sys = cdDiarySysOf(s, data, _dv);
   // ★ Liên kết sách thế giới: ở đầu thân hàm, lấy bất đồng bộ thiết lập sách thế giới của nhân vật xuất hiện (loadWorldInfo là API bất đồng bộ)
   let _worldbookTxtDiary = '';
   if (s && s.summarizeInjectDiary && s.worldbookLink !== false) {
@@ -1502,7 +1485,7 @@ async function cdBuildDiaryPrompt(windowFloors, data, s) {
     'Hãy xuất JSON.',
   ].filter(Boolean).join('\n\n');
   return [
-    { role: 'system', content: JAILBREAK + '\n\n' + sys },
+    { role: 'system', content: JAILBREAK + '\n\n' + cdApplyPromptCustom('diary', sys) },
     { role: 'user', content: usr },
     { role: 'assistant', content: '{"npcs":[' },
   ];
@@ -1522,7 +1505,8 @@ function cdBuildCombinedPrompt(windowFloors, data, s) {
       return `【${name}】${e.date ? e.date : 'Tầng ' + e.turn + ''}: ${(e.entry || '').trim()}`;
     }).join('\n');
   }).filter(Boolean).join('\n');
-  const scene = windowFloors.map(m => `[#${m.message_id} ${m.name}] ${m.mes}`).join('\n\n');
+  // ★ FIX35: chỗ này trước đây ghép thẳng m.mes, hoàn toàn không lọc —— bật tóm tắt gộp thì mọi quy tắc lọc trong thiết lập đều vô hiệu
+  const scene = cdFilteredSceneLines(windowFloors, s).join('\n\n');
   const existing = data.archive || emptyData().archive;
   
   const sys = [
@@ -1600,7 +1584,7 @@ function cdBuildCombinedPrompt(windowFloors, data, s) {
   ].join('\n\n');
   
   return [
-    { role: 'system', content: JAILBREAK + '\n\n' + sys },
+    { role: 'system', content: JAILBREAK + '\n\n' + cdApplyPromptCustom('diary', sys) },
     { role: 'user', content: usr },
     { role: 'assistant', content: '{"npcs":[' },
   ];
@@ -1864,7 +1848,7 @@ function cdArchiveSystemOf(full, s, hasOld) {
     try { st = (typeof cdGetSettings === 'function') ? String((cdGetSettings() || {}).archiveStyle || '') : ''; }
     catch (e) { st = ''; }
   }
-  return cdArchiveBuildSys(!!full, st === 'plain' ? 'plain' : 'dialogue', hasOld, cdArchiveFieldsOf(s));
+  return cdApplyPromptCustom('archive', cdArchiveBuildSys(!!full, st === 'plain' ? 'plain' : 'dialogue', hasOld, cdArchiveFieldsOf(s)));
 }
 
 async function cdBuildArchivePrompt(windowFloors, data, _s, archiveFull, forceCold) {
@@ -1894,8 +1878,7 @@ async function cdBuildArchivePrompt(windowFloors, data, _s, archiveFull, forceCo
     return `Đã biết ${f.label}:\n` + arr.map(it => it.time ? `【${it.time}】${it.desc}` : it.desc).join('\n');
   }).filter(Boolean).join('\n');
   // ★ Văn bản tầng đã qua lọc thẻ
-  const tags = _s?.filterTags || [];
-  const scene = windowFloors.map(m => `[#${m.message_id} ${m.name}] ${cdFilterTags(m.mes, tags)}`).join('\n\n');
+  const scene = cdFilteredSceneLines(windowFloors, _s).join('\n\n');
 
   // ★★★ Nhật ký chẩn đoán: xác nhận số tầng và nội dung truyền vào hồ sơ cốt truyện có đầy đủ hay không ★★★
   try {
@@ -1921,7 +1904,7 @@ async function cdBuildArchivePrompt(windowFloors, data, _s, archiveFull, forceCo
       const topK = _s.vectorTopK || 5;
       const threshold = _s.vectorThreshold || 0.6;
       // Dùng văn bản tầng hiện tại để truy xuất
-      const sceneText = windowFloors.map(m => `${m.name}: ${cdFilterTags(m.mes, tags)}`).join('\n');
+      const sceneText = cdFilteredSceneLines(windowFloors, _s, m => (m.name || '') + ':').join('\n');
       let results = await cdSearchVectors(sceneText, vectors, topK, threshold);
       // ★ rerank xếp hạng lại (luồng hồ sơ cốt truyện)
       results = await cdRerankResults(sceneText, results, _s, 'story');
@@ -2365,8 +2348,7 @@ function parseArchiveJson(text, customDefs) {
 function cdBuildRelationPrompt(windowFloors, data, _s) {
   const known = Object.keys(data.diaries);
   // ★ Văn bản tầng đã qua lọc thẻ
-  const tags = _s?.filterTags || [];
-  const scene = windowFloors.map(m => `[#${m.message_id} ${m.name}] ${cdFilterTags(m.mes, tags)}`).join('\n\n');
+  const scene = cdFilteredSceneLines(windowFloors, _s).join('\n\n');
   const sys = [
     'Bạn là người phân tích quan hệ nhân vật. Đọc đoạn cốt truyện được cung cấp, trích xuất "quan hệ chủ quan một chiều" giữa các nhân vật.',
     'Yêu cầu:',
@@ -2476,6 +2458,119 @@ function cdCleanAiField(v) {
 
 /* ============================== Lọc nội dung (gửi cho AI) ============================== */
 
+/** Tìm toàn bộ các "khối thẻ ngoặc nhọn thành cặp ở lớp ngoài cùng" trong văn bản
+ *  @returns {Array<{name:string,start:number,end:number,raw:string}>}
+ *  ★ FIX35: ghép cặp bằng stack, xử lý được thẻ lồng cùng tên, thẻ rỗng (void) và thẻ chưa đóng.
+ */
+function cdAngleBlocks(text) {
+  const src = String(text || '');
+  if (!src || src.indexOf('<') < 0) return [];
+  // Phần tử rỗng không đẩy vào stack: chúng không có thẻ đóng, đẩy vào sẽ nuốt luôn cả đoạn sau
+  const VOID = { br: 1, hr: 1, img: 1, input: 1, meta: 1, link: 1, source: 1, wbr: 1, area: 1, base: 1, col: 1, embed: 1, param: 1, track: 1 };
+  // ★ Không dùng [A-Za-z] cho tên thẻ: AI thường xuất thẻ tiếng Việt/Trung như <chú_ý>…</chú_ý> hoặc <注意>…</注意>.
+  //   Dùng ký tự không phải khoảng trắng/ngoặc nhọn/gạch chéo làm tên thẻ: vừa hỗ trợ Unicode vừa không nhầm "< 10" thành thẻ.
+  const re = /<\s*\/?\s*([^\s<>/]+)(?:\s[^<>]*?)?(\/?)\s*>/g;
+  const stack = [];
+  const all = [];
+  let m;
+  while ((m = re.exec(src))) {
+    const raw = m[0];
+    const name = String(m[1] || '').toLowerCase();
+    if (!name) continue;
+    if (VOID[name] || m[2] === '/') continue;
+    const isClose = /^<\s*\//.test(raw);
+    if (!isClose) {
+      stack.push({ name: name, start: m.index });
+    } else {
+      for (let i = stack.length - 1; i >= 0; i--) {
+        if (stack[i].name === name) {
+          const op = stack[i];
+          stack.length = i;                 // Bật nó cùng các thẻ bên trong chưa đóng
+          all.push({ name: name, start: op.start, end: m.index + raw.length });
+          break;
+        }
+      }
+    }
+  }
+  if (!all.length) return [];
+  all.sort(function (a, b) { return a.start - b.start || b.end - a.end; });
+  const out = [];
+  let lastEnd = -1;
+  for (const b of all) {
+    if (b.start >= lastEnd) { out.push(b); lastEnd = b.end; }   // Chỉ giữ lớp ngoài cùng
+  }
+  return out.map(function (b) {
+    return { name: b.name, start: b.start, end: b.end, raw: src.slice(b.start, b.end) };
+  });
+}
+
+/** Quét các thẻ xuất hiện trong chính văn một tầng (gộp theo tên, xếp giảm dần theo số ký tự chiếm dụng) */
+function cdScanTagStats(text) {
+  const blocks = cdAngleBlocks(text);
+  const map = Object.create(null);
+  for (const b of blocks) {
+    if (!map[b.name]) map[b.name] = { name: b.name, count: 0, len: 0, sample: '' };
+    map[b.name].count += 1;
+    map[b.name].len += b.raw.length;
+    if (!map[b.name].sample) map[b.name].sample = b.raw.replace(/\s+/g, ' ').slice(0, 56);
+  }
+  return Object.keys(map).map(function (k) { return map[k]; })
+    .sort(function (a, b) { return b.len - a.len; });
+}
+
+/** Lọc danh sách trắng (whitelist): chỉ giữ các khối thẻ nằm trong keepNames, mọi chữ còn lại (kể cả khối thẻ khác) đều bỏ
+ *  ★ Đây là mức lọc triệt để nhất do người dùng chủ động chọn, giao diện phải ghi rõ là sẽ xóa cả phần chính văn bên ngoài.
+ */
+function cdFilterByKeep(text, keepNames) {
+  const src = String(text || '');
+  const keep = (Array.isArray(keepNames) ? keepNames : [])
+    .map(function (x) { return String(x || '').toLowerCase().trim(); })
+    .filter(Boolean);
+  if (!keep.length) return src;
+  const out = [];
+  for (const b of cdAngleBlocks(src)) {
+    if (keep.indexOf(b.name) >= 0) out.push(b.raw);
+  }
+  return out.join('\n').trim();
+}
+
+/** Lối vào lọc thống nhất: danh sách trắng không rỗng thì đi theo danh sách trắng, nếu không thì dùng danh sách đen filterTags
+ *  ★ Mọi chỗ ghép chính văn tầng vào prompt đều phải đi qua đây, không gọi thẳng cdFilterTags,
+ *    nếu không ở chế độ danh sách trắng sẽ bỏ sót (bài học cũ: chế độ gộp từng bị bỏ sót cả năm).
+ */
+function cdFilterText(text, s) {
+  if (!text) return text;
+  const _st = s || {};
+  if (Array.isArray(_st.filterKeepTags) && _st.filterKeepTags.length) {
+    return cdFilterByKeep(text, _st.filterKeepTags);
+  }
+  return cdFilterTags(text, _st.filterTags);
+}
+
+/**
+ * Lọc chính văn các tầng theo quy tắc thẻ rồi ghép thành mảng dòng cho prompt (FIX36).
+ * ★ Tầng nào sau khi lọc bị rỗng / chỉ còn khoảng trắng thì bỏ thẳng, không giữ chỗ.
+ *   Ở chế độ danh sách trắng (chỉ giữ), nhiều tầng sẽ trống; ghép kiểu cũ `[#12 Tên] ` sẽ tạo một đống dòng vỏ rỗng,
+ *   vừa tốn token vừa khiến AI tưởng "tầng này không có gì xảy ra".
+ * @param floors  Mảng tầng { message_id, name, mes }
+ * @param s       Đối tượng thiết lập (đọc filterKeepTags / filterTags)
+ * @param labelFn Tùy chọn, m => chuỗi tiền tố; trả chuỗi rỗng nếu không cần tiền tố
+ */
+function cdFilteredSceneLines(floors, s, labelFn) {
+  const list = Array.isArray(floors) ? floors : [];
+  const out = [];
+  for (let i = 0; i < list.length; i++) {
+    const m = list[i];
+    if (!m) continue;
+    const raw = (m.mes != null ? m.mes : (m.message != null ? m.message : ''));
+    const t = cdFilterText(raw, s);
+    if (!t || !String(t).trim()) continue;   // ★ FIX36 bỏ qua tầng rỗng
+    const lb = labelFn ? String(labelFn(m) || '') : ('[#' + m.message_id + ' ' + (m.name || '') + ']');
+    out.push(lb ? (lb + ' ' + t) : String(t));
+  }
+  return out;
+}
+
 /** Theo cặp thẻ người dùng tự định nghĩa, lọc bỏ nội dung không cần gửi cho AI */
 function cdFilterTags(text, tags) {
   if (!text || !Array.isArray(tags) || !tags.length) return text;
@@ -2484,6 +2579,30 @@ function cdFilterTags(text, tags) {
     const start = String(pair?.start || '').trim();
     const end = String(pair?.end || '').trim();
     if (!start || !end) continue;
+    // ★ FIX35: cặp thẻ ngoặc nhọn đi qua ghép cặp bằng stack —— trước đây dùng indexOf tìm '<tag>',
+    //   gặp '<tag class="x">' là không khớp cái nào, người dùng tưởng quy tắc đã chạy nhưng thực tế chưa lọc gì.
+    const mTag = /^<\s*([^\s<>/]+)\s*>$/.exec(start);
+    if (mTag) {
+      const nm = String(mTag[1]).toLowerCase();
+      const blocks = cdAngleBlocks(result);
+      let hit = 0;
+      for (let i = blocks.length - 1; i >= 0; i--) {
+        if (blocks[i].name === nm) {
+          result = result.slice(0, blocks[i].start) + result.slice(blocks[i].end);
+          hit += 1;
+        }
+      }
+      if (!hit) {
+        // ★ Không có khối thành cặp thì giữ quy tắc cũ: thẻ mở chưa đóng → cắt tới đầu thẻ mở.
+        //   Đây là nguyên tắc cố định phía "gửi cho AI" (thà bỏ còn hơn bẩn): thẻ chưa đóng thường do chính văn bị cắt cụt,
+        //   giữ lại nửa sau chỉ làm bẩn ngữ cảnh của AI.
+        const safe = nm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const om = new RegExp('<\\s*' + safe + '(?=[\\s/>])', 'i').exec(result);
+        if (om) result = result.slice(0, om.index);
+      }
+      continue;
+    }
+    // Cặp chuỗi thường (như <!-- -->): giữ nguyên hành vi cũ, tương thích ngược
     let si = result.indexOf(start);
     while (si !== -1) {
       const ei = result.indexOf(end, si + start.length);
@@ -2611,6 +2730,136 @@ function cdParseCompressedBlocks(text, labels) {
  * @param {object} s         thiết lập
  * @param {boolean} isAuto   có phải do tự động kích hoạt gọi hay không (true = ghi mốc sau khi kích hoạt; thủ công false = không ghi mốc)
  */
+/* ============================== Tùy chỉnh Prompt (FIX34) ============================== */
+/* Ba loại prompt cho phép tùy chỉnh. key đồng thời là tên trường trong thiết lập và định danh tab trên trang.
+   ★ Khi thêm loại mới, nhớ thêm giá trị mặc định vào DEFAULT_SETTINGS.promptCustom, nếu không đọc ra sẽ là undefined. */
+const CD_PROMPT_KINDS = [
+  { key: 'diary',    name: 'Tóm tắt (Nhật ký)', icon: 'fa-regular fa-book',
+    desc: 'Prompt dùng mỗi lần bảo AI viết nhật ký nhân vật. Chế độ gộp (chạy một lần nhật ký + quan hệ + hồ sơ) cũng nhận bản này.',
+    warn: 'Nhật ký bắt buộc AI phải xuất JSON có mảng "npcs"; sửa hỏng định dạng sẽ khiến phân tích thất bại và mất cả lô nhật ký.' },
+  { key: 'archive',  name: 'Hồ sơ cốt truyện', icon: 'fa-regular fa-scroll',
+    desc: 'Prompt dùng khi tạo hồ sơ cốt truyện (tuyến chính / tuyến phụ / trạng thái / chưa giải quyết).',
+    warn: 'Hồ sơ yêu cầu “nhãn đứng riêng một dòng, nội dung viết ở các dòng sau”. Viết cùng dòng kiểu “Tuyến chính: nội dung” sẽ làm rơi cả đoạn.' },
+  { key: 'compress', name: 'Nén hồ sơ', icon: 'fa-regular fa-compress',
+    desc: 'Prompt dùng khi nén gộp hồ sơ cốt truyện tích lũy thành một bản ngắn gọn hơn.',
+    warn: 'Prompt nén không động vào định dạng phân tích cấu trúc; sửa chưa tốt cùng lắm nén chưa ưng ý, không làm mất hồ sơ.' }
+];
+
+/* Tiêu đề bọc cho phần yêu cầu thêm. Cách viết vừa đảm bảo yêu cầu người dùng có độ ưu tiên cao hơn,
+   vừa cấm thay đổi định dạng đầu ra để tránh làm hỏng cấu trúc JSON/tiêu đề. */
+const CD_PROMPT_APPEND_HEAD = '\n\n【Yêu cầu tùy chỉnh của người dùng (ưu tiên cao hơn mọi quy tắc phía trên, nhưng KHÔNG được thay đổi định dạng đầu ra và tên trường phía trên)】\n';
+
+/** Lấy cấu hình tùy chỉnh của một loại prompt (không bao giờ ném lỗi, không đọc được thì coi như chưa cấu hình) */
+function cdPromptCfg(kind) {
+  try {
+    const s = (typeof cdGetSettings === 'function') ? cdGetSettings() : null;
+    const all = (s && s.promptCustom && typeof s.promptCustom === 'object') ? s.promptCustom : null;
+    const c = all ? all[kind] : null;
+    if (!c || typeof c !== 'object') return { append: '', override: '', useOverride: false };
+    return {
+      append: typeof c.append === 'string' ? c.append : '',
+      override: typeof c.override === 'string' ? c.override : '',
+      useOverride: !!c.useOverride
+    };
+  } catch (e) { return { append: '', override: '', useOverride: false }; }
+}
+
+/** Áp dụng tùy chỉnh của người dùng lên prompt mặc định.
+    - Chưa cấu hình → trả về nguyên văn (người dùng cũ không đổi dù chỉ một byte)
+    - Tiếp quản toàn bộ và không rỗng → thay thế hoàn toàn mặc định bằng văn bản của người dùng
+    - Chỉ viết phần thêm yêu cầu → mặc định + đoạn tùy chỉnh
+   ★ Đây là lối vào duy nhất của mọi luồng dựng prompt. Sửa ở đây cả ba prompt cùng đổi. */
+function cdApplyPromptCustom(kind, text) {
+  const base = String(text == null ? '' : text);
+  const c = cdPromptCfg(kind);
+  if (c.useOverride && String(c.override).trim()) return String(c.override).trim();
+  const ap = String(c.append).trim();
+  if (!ap) return base;
+  return base + CD_PROMPT_APPEND_HEAD + ap;
+}
+
+/** Văn bản prompt mặc định đang có hiệu lực (dùng để hiển thị ở trang chỉnh sửa, không gồm phần tùy chỉnh) */
+function cdPromptDefaultText(kind) {
+  try {
+    if (kind === 'diary') return cdDiarySysOf({}, {}, 'full');
+    if (kind === 'archive') return cdArchiveSystemOf(false, {}, false);
+    if (kind === 'compress') return CD_COMPRESS_PROMPT;
+  } catch (e) {
+    return '(Đọc prompt mặc định thất bại: ' + (e && e.message ? e.message : e) + ')';
+  }
+  return '';
+}
+
+/* FIX34: đưa prompt nén lên tầng trên cùng để trang chỉnh sửa hiển thị/tiếp quản đúng cùng một bản với bản gửi đi. */
+const CD_COMPRESS_PROMPT = `Bạn là người chỉnh lý hồ sơ cốt truyện. Hãy nén hợp nhất bản tóm tắt cốt truyện được chia đoạn theo【tiêu đề】bên dưới thành một bản hồ sơ cốt truyện "chỉ giữ các sự kiện then chốt thúc đẩy cốt truyện, còn lại bỏ hết".
+
+【Luật thép thứ nhất: chỉ giữ sự kiện thúc đẩy cốt truyện】
+- "Nén" ở đây là lọc bỏ những nội dung không thúc đẩy cốt truyện, chỉ giữ lại các sự kiện sẽ ảnh hưởng tới diễn biến về sau: quyết định then chốt của nhân vật, thay đổi thực chất trong quan hệ, được mất lớn, lời hứa và lời đe dọa đã lập, bí mật bị lộ hoặc được hé mở, ân oán kết thành.
+- Những nội dung sau bỏ hết, không giữ lại và cũng không gộp vào tuyến chính: chào hỏi xã giao và hội thoại vô thưởng vô phạt, việc sinh hoạt vặt vãnh như ăn uống tắm rửa ngủ nghỉ, miêu tả không khí môi trường và tô vẽ cảm xúc, đoạn chuyển tiếp nối, tương tác một lần với nhân vật qua đường, và mọi hành động không tạo ra hệ quả.
+- Nghiêm cấm viết các sự kiện được giữ lại thành khái quát trừu tượng (các câu mơ hồ như "gặp chút rắc rối", "xảy ra không ít chuyện" không được phép xuất hiện) —— mỗi mục giữ lại đều phải là sự thật hoàn chỉnh đọc vào hiểu ngay.
+- Cho phép rút ngắn rõ rệt: nén xuống 1/3 nguyên văn hoặc ngắn hơn nữa đều bình thường. Thà ngắn còn hơn nhét lại chuyện vặt vãnh.
+
+【Luật thép về thời gian và địa điểm】
+- 【Mốc thời gian】phải được giữ nguyên: mỗi sự kiện đều phải mang chú thích【thời gian】vốn có của nó, không được xóa hoặc gộp mốc thời gian; không được viết lại các mục có【thời gian】thành tường thuật liên tục không có mốc thời gian.
+- Thứ tự trước sau của sự kiện, chuỗi nhân quả xuyên thời gian không được rối, không được nhảy đoạn.
+- Nếu nguyên văn có trường【Địa điểm】hoặc đoạn đánh dấu <<<LOCATIONS>>>…<<<LOCATIONS_END>>>, phải giữ nguyên chuỗi địa điểm đó, không được xóa hoặc viết lại tên địa danh cốt lõi.
+
+【Mục có thể dọn bỏ (cứ mạnh tay bỏ)】
+- Việc chưa giải quyết: chỉ cần giữ số ít mục "hiện quan trọng nhất, vẫn đang tiến triển"; các mục chưa giải quyết cũ, đã sang trang có thể xóa thẳng (vòng sau sẽ ghi lại một loạt mới).
+- Phục bút dài hạn, bí ẩn chưa hé lộ, lời hứa chưa thực hiện, manh mối dẫn dắt, đường dây phục bút xuyên nhiều tầng —— có thể dọn mạnh, không cần giữ nguyên.
+- Không khí môi trường, tô vẽ cảm xúc, chuyện thường ngày vụn vặt, đoạn chuyển tiếp nối —— xóa thẳng.
+
+【Luật thép định dạng (hoàn toàn nhất quán với tự động viết hồ sơ, khi nén cũng phải tuân thủ, cấm phá vỡ định dạng hiện có)】:
+1. Thay đổi trạng thái quan trọng (states) phải giữ định dạng chia ô cố định, dùng | phân cách các chiều khác nhau, mỗi ô một giá trị, cấm trộn nhiều chiều vào cùng một giá trị. Mỗi dòng = một đối tượng (nhân vật chính/môi trường/một nhân vật nào đó), phân cách bằng xuống dòng:
+   - Dòng nhân vật chính: Nhân vật chính: Thân phận【…】| Cơ thể【…】| Tinh thần【…】| Địa chỉ【…】| Tài sản【…】| Bề ngoài【…】| Hảo cảm【…】| Ghi chú【…】
+   - Dòng môi trường: Môi trường: Bố cục【…】| Nhiệt độ thời tiết【…】
+   - Dòng nhân vật khác: Tên nhân vật: Cơ thể【…】| Địa chỉ【…】| Tài sản【…】| Bề ngoài【…】| Hảo cảm【…】| Ghi chú【…】
+   Khi nén giữ cho các ô và chiều này không bị mất; ô nào đã thay đổi mới cập nhật, chưa thay đổi thì giữ hoặc để trống, đừng dùng “Không” lấp đầy mọi ô.
+2. Giữ ngữ nghĩa kiểu ghi đè và kiểu thêm vào: tuyến chính/tuyến phụ là kiểu thêm vào (giữ toàn bộ tiến triển đã xảy ra); thay đổi trạng thái quan trọng/việc chưa giải quyết là kiểu ghi đè (giữ toàn cảnh mới nhất hiện vẫn còn hiệu lực).
+3. Nếu cuối dòng trạng thái trong nguyên văn có【mốc thời gian】(như【15/03/2026 18:30】), phải giữ mốc thời gian đó để đánh dấu thời điểm trạng thái thay đổi gần nhất.
+
+Hãy xuất nghiêm ngặt theo các đoạn sau, mỗi đoạn mở đầu bằng【tiêu đề】, tiêu đề giữ nguyên, không được sửa chữ trong tiêu đề:
+- 【Tuyến chính】… (mỗi sự kiện vẫn mở đầu bằng【thời gian】, mỗi mục một dòng)
+- 【Tuyến phụ】… (mỗi sự kiện vẫn mở đầu bằng【thời gian】, mỗi mục một dòng)
+- 【Thay đổi trạng thái quan trọng】… (mỗi sự kiện vẫn mở đầu bằng【thời gian】, mỗi mục một dòng; và giữ các dòng trạng thái của nhân vật/nhân vật chính/môi trường theo định dạng chia ô ở trên)
+- 【Việc chưa giải quyết】… (mỗi sự kiện vẫn mở đầu bằng【thời gian】, mỗi mục một dòng)
+- Các mục theo dõi tùy chỉnh còn lại: xuất nguyên dạng đoạn【tiêu đề】theo tiêu đề gốc.
+- 【Địa điểm】(nếu nguyên văn có thì xuất nguyên dạng, bọc bằng <<<LOCATIONS>>>…<<<LOCATIONS_END>>>, mỗi dòng một tên địa danh cốt lõi)
+Đoạn nào không có nội dung có thể bỏ qua. Chỉ xuất văn bản sau khi nén, không kèm bất kỳ giải thích nào.`;
+
+/* FIX34: tách prompt SYSTEM nhật ký thành hàm độc lập làm nguồn chuẩn duy nhất.
+   "Mặc định hiện tại" hiển thị trên trang chỉnh sửa và bản gửi thực tế cho AI là cùng một nguồn, tránh lệch nhau. */
+function cdDiarySysOf(s, data, dv) {
+  return [
+    'Bạn là người ghi chép "Nhật ký nhân vật". Khi đọc cốt truyện, hãy để mỗi nhân vật có tên tuổi và có đất diễn dùng ngôi thứ nhất viết ra điều mình thực sự đang nghĩ trong lòng lúc này.',
+    (typeof data === 'object' && data !== null && typeof data.lastFloor === 'number' && data.lastFloor === -1)
+      ? '- ★★★ Lần này là lần ghi chép【đầu tiên】của đoạn cốt truyện này. 【Lời mở đầu ở tầng 0】ở phần đầu chứa thiết lập bối cảnh, thời gian địa điểm, các nhân vật xuất hiện và trạng thái quan hệ hiện tại giữa họ; hãy lĩnh hội các thiết lập này, nhưng đừng thuật lại lời mở đầu, chỉ hòa lớp bối cảnh này vào tâm cảnh lúc này của nhân vật.'
+      : '',
+    '【Viết cho ai】Chỉ viết cho nhân vật có tên tuổi và có đất diễn. Bỏ qua người qua đường thuần túy; không viết thay người chơi/nhân vật chính.',
+    s.mainCardIsGM ? '- Người dẫn truyện/hệ thống/góc nhìn thượng đế/người kể chuyện kiểu GM thì đừng viết cho họ.' : '',
+    '【Đây là lời tự nhủ viết cho chính mình, không phải báo cáo cốt truyện】',
+    '- Viết theo cảm xúc và tính khí lúc này của nhân vật, đừng như học thuộc bài mà thuật lại hôm nay đã xảy ra chuyện gì. Chỉ viết những gì họ tận mắt thấy, tận tai nghe, tự thân trải nghiệm, và trong lòng thật sự nghĩ như vậy.',
+    '- Lệnh cấm toàn tri: tuyệt đối không được như thượng đế mà nói ra nhân vật khác đang nghĩ gì trong lòng, không được viết tình tiết nhân vật này không biết, chưa trải qua.',
+    '【Phần trọng tâm】Viết ra chuyện trong đoạn cốt truyện này thật sự chạm vào lòng họ —— họ có thể vì chuyện này mà thay đổi cách nhìn về ai đó, ghi thù, rung động, sợ hãi về sau, biết ơn, tức đến bật cười, hoặc tự cà khịa bản thân một trận ra trò; cũng có thể chỉ là trong lòng chợt thót một cái, cái mùi vị mà chính họ cũng không nói rõ được. Đi theo phản ứng mà nhân vật đó nên có: vui thì vui, chua thì chua, nhận thì nhận, giận thì giận. Điểm mấu chốt là chuyện này mang theo cảm xúc rơi vào lòng họ, khiến họ có chút cách nhìn hoặc thái độ mới về một người nào đó hoặc về chính mình.',
+    '【Giọng điệu】Như một mình lẩm bẩm lúc đêm khuya: có thể có ẩn ý, nói nửa chừng rồi nuốt lại, đột nhiên tự giễu một câu, hoặc cứng miệng hai câu; sẽ lặp đi lặp lại, sẽ mâu thuẫn —— con người vốn là như vậy. Đừng văn vẻ, đừng giọng quan cách, đừng câu nào cũng giải thích vì sao.',
+    '【Ký ức】Nhớ lại chuyện cũ thì thêm một câu hô ứng, không nhớ thì thôi, không gượng ép.',
+    '【Ngôn ngữ】Theo ngôn ngữ chính của đoạn cốt truyện.',
+    '【Tình tiết lộ liễu】Tình dục/bạo lực... chỉ lướt qua bằng một câu (như "đã quan hệ với anh ấy", "bị hắn khống chế"), nghiêm cấm miêu tả chi tiết động tác, cơ quan, dịch thể. Nhật ký ghi cảm nhận và phán đoán, không phải tái hiện quá trình.',
+    (dv === 'lite'
+      ? '【Lô này là bản ngắn】Chính văn trong vòng 100 chữ, chỉ viết ba thứ thật cô đọng: ① lúc này trong lòng nghĩ gì (sướng hay không/ấm ức hay không/buông bỏ được chưa) ② chuyện quan trọng nhất hôm nay (một câu lướt qua, mang theo thái độ của họ —— cà khịa/biết ơn/ghi thù/rung động đều được) ③ một điểm ký ức họ muốn giữ lại từ chuyện này. Câu nào ra câu nấy, không chất chồng từ ngữ, không dài dòng.'
+      : '【Lô này là bản đầy đủ】Chính văn 300~520 chữ. Trải ra theo cảm xúc: có thể có hoạt động tâm lý, có giọng điệu, viết chuyện chạm vào lòng họ sao cho có sức nặng. Thà thiếu chứ không ẩu, đừng viết rỗng cho đủ chữ.'),
+    '【Cấu trúc】Chỉ xuất JSON, các trường giữ nguyên, không được cắt bớt:',
+    '{"npcs":[{"name":"Tên chính","aliases":["Bí danh"],"is_minor":false,"date":"Thời gian trong truyện hoặc tầng N","turn":số_tầng,"entry":"Chính văn lời tự nhủ ngôi thứ nhất", "mood":"Tâm trạng (chỉ dùng một trong các từ sau: vui vẻ, buồn bã, tức giận, căng thẳng, bình tĩnh, bối rối, ngạc nhiên, nhớ nhung)","attitude_to_user":"Thái độ với người dùng","secret":"Tâm tư chưa nói ra (có thể trùng với entry nhưng riêng tư hơn, ngắn hơn)","key_events":["Sự kiện then chốt"],"relationship_with_others":{"Nhân vật nào đó":"Mô tả quan hệ"}}]}',
+    'Giải thích các trường:',
+    '- entry: chính là chính văn lời tự nhủ của nhân vật lúc này (viết theo số chữ của bản ngắn/bản đầy đủ ở trên).',
+    '- mood: tâm trạng lúc này; attitude_to_user: thái độ với người dùng; secret: tâm tư chưa nói ra.',
+    '- key_events: sự kiện họ tự thân trải qua và có sức nặng với cá nhân họ.',
+    '- relationship_with_others: ấn tượng của họ về quan hệ giữa mình và người khác (chủ quan, viết theo trải nghiệm của họ, không phải kết luận từ góc nhìn thượng đế).',
+    '- Dùng lại tên chính trong danh sách nhân vật đã biết; nhận ra bí danh thì gộp về tên chính và bổ sung vào aliases.',
+    '- Dùng is_minor để đánh dấu tầm quan trọng của nhân vật: nhân vật chính/nhân vật phụ quan trọng/NPC có tên tuổi và có đất diễn đánh false; người qua đường thuần túy chỉ lộ mặt một hai câu trong đoạn đánh true.',
+  ].filter(Boolean).join('\n');
+}
+
 async function cdCompressArchive(data, s, isAuto) {
   if (!data || !data.archive) return;
   const archive = data.archive;
@@ -2643,53 +2892,10 @@ async function cdCompressArchive(data, s, isAuto) {
   const joinText = blocks.join('\n\n');
   if (!joinText) { cdLog('cdCompressArchive: không có nội dung để nén'); return; }
 
-  const COMPRESS_PROMPT = `Bạn là người chỉnh lý hồ sơ cốt truyện. Hãy nén hợp nhất bản tóm tắt cốt truyện được chia đoạn theo【tiêu đề】bên dưới thành một bản hồ sơ cốt truyện "gọn hơn, nhưng mọi việc đã xảy ra đều không mất".
-
-【Luật thép thứ nhất: giảm béo không cắt chi, không phải chọn trọng điểm】
-- "Nén" ở đây là kể lại mỗi đoạn bằng câu ngắn hơn, mục tiêu là để lại một bản hồ sơ【thông tin đầy đủ, trọn bộ sự kiện】, chứ không phải chỉ chọn ra vài việc then chốt.
-- Mọi "việc đã xảy ra" trong tuyến chính, tuyến phụ, dù nhỏ đến đâu, có vẻ thứ yếu đến đâu, cũng không được xóa một việc nào —— mỗi việc đều phải được giữ lại bằng cách tinh gọn hơn (có thể gộp các việc nhỏ cùng loại thành một câu, nhưng không được coi như chưa xảy ra).
-- Nghiêm cấm nén sự thật cụ thể thành khái quát trừu tượng (các câu mơ hồ như "gặp chút rắc rối", "xảy ra không ít chuyện" không được phép xuất hiện).
-- Độ dài sau khi nén nên khoảng 1/2~2/3 nguyên văn: câu gọn hơn, đoạn dày hơn, nhưng tuyệt đối không nén tới mức chỉ còn vài mục tuyến chính. Thà dài hơn một chút, chứ không được mất những việc đã trải qua.
-
-【Luật thép về thời gian và địa điểm】
-- 【Mốc thời gian】phải được giữ nguyên: mỗi sự kiện đều phải mang chú thích【thời gian】vốn có của nó, không được xóa hoặc gộp mốc thời gian; không được viết lại các mục có【thời gian】thành tường thuật liên tục không có mốc thời gian.
-- Thứ tự trước sau của sự kiện, chuỗi nhân quả xuyên thời gian không được rối, không được nhảy đoạn.
-- Nếu nguyên văn có trường【Địa điểm】hoặc đoạn đánh dấu <<<LOCATIONS>>>…<<<LOCATIONS_END>>>, phải giữ nguyên chuỗi địa điểm đó, không được xóa hoặc viết lại tên địa danh cốt lõi.
-
-【Mục có thể dọn bỏ (cứ mạnh tay bỏ)】
-- Việc chưa giải quyết: chỉ cần giữ số ít mục "hiện quan trọng nhất, vẫn đang tiến triển"; các mục chưa giải quyết cũ, đã sang trang có thể xóa thẳng (vòng sau sẽ ghi lại một loạt mới).
-- Phục bút dài hạn, bí ẩn chưa hé lộ, lời hứa chưa thực hiện, manh mối dẫn dắt, đường dây phục bút xuyên nhiều tầng —— có thể dọn mạnh, không cần giữ nguyên.
-- Không khí môi trường, tô vẽ cảm xúc, chuyện thường ngày vụn vặt, đoạn chuyển tiếp nối —— xóa thẳng.
-
-【Luật thép định dạng (hoàn toàn nhất quán với tự động viết hồ sơ, khi nén cũng phải tuân thủ, cấm phá vỡ định dạng hiện có)】:
-1. Thay đổi trạng thái quan trọng (states) phải giữ định dạng chia ô cố định, dùng | phân cách các chiều khác nhau, mỗi ô một giá trị, cấm trộn nhiều chiều vào cùng một giá trị. Mỗi dòng = một đối tượng (nhân vật chính/môi trường/một nhân vật nào đó), phân cách bằng xuống dòng:
-   - Dòng nhân vật chính: Nhân vật chính: Thân phận【…】| Cơ thể【…】| Tinh thần【…】| Địa chỉ【…】| Tài sản【…】| Bề ngoài【…】| Hảo cảm【…】| Ghi chú【…】
-   - Dòng môi trường: Môi trường: Bố cục【…】| Nhiệt độ thời tiết【…】
-   - Dòng nhân vật khác: Tên nhân vật: Cơ thể【…】| Địa chỉ【…】| Tài sản【…】| Bề ngoài【…】| Hảo cảm【…】| Ghi chú【…】
-   Khi nén giữ cho các ô và chiều này không bị mất; ô nào đã thay đổi mới cập nhật, chưa thay đổi thì giữ hoặc để trống, đừng dùng “Không” lấp đầy mọi ô.
-2. Luật thép giá trị hảo cảm (phải tuân thủ nghiêm ngặt, khi nén không được phá vỡ):
-   - Hảo cảm phải được viết riêng bằng con số (như “Hảo cảm với nhân vật chính 62” hoặc “Hảo cảm với nhân vật chính -90”), cấm dùng cách diễn đạt mơ hồ như “hảo cảm tăng mạnh”, “hảo cảm giảm xuống”.
-   - Hảo cảm âm phải có dấu trừ (-), như “Hảo cảm với nhân vật chính -90”, tuyệt đối không được viết thành giá trị dương hay giá trị tuyệt đối; khi tổng hợp kiểu ghi đè, hảo cảm âm hiện có phải được giữ nguyên kèm dấu trừ.
-   - Nén chỉ là tinh gọn cách diễn đạt, không được tự ý thay đổi bản thân giá trị hảo cảm; giá trị phải nối tiếp liên tục với trước khi nén.
-3. Giữ ngữ nghĩa kiểu ghi đè và kiểu thêm vào: tuyến chính/tuyến phụ là kiểu thêm vào (giữ toàn bộ tiến triển đã xảy ra); thay đổi trạng thái quan trọng/việc chưa giải quyết là kiểu ghi đè (giữ toàn cảnh mới nhất hiện vẫn còn hiệu lực).
-4. Nếu cuối dòng trạng thái trong nguyên văn có【mốc thời gian】(như【15/03/2026 18:30】), phải giữ mốc thời gian đó để đánh dấu thời điểm trạng thái thay đổi gần nhất.
-
-Hãy xuất nghiêm ngặt theo các đoạn sau, mỗi đoạn mở đầu bằng【tiêu đề】, tiêu đề giữ nguyên, không được sửa chữ trong tiêu đề:
-- 【Tuyến chính】… (mỗi sự kiện vẫn mở đầu bằng【thời gian】, mỗi mục một dòng)
-- 【Tuyến phụ】… (mỗi sự kiện vẫn mở đầu bằng【thời gian】, mỗi mục một dòng)
-- 【Thay đổi trạng thái quan trọng】… (mỗi sự kiện vẫn mở đầu bằng【thời gian】, mỗi mục một dòng; và giữ các dòng trạng thái của nhân vật/nhân vật chính/môi trường theo định dạng chia ô ở trên)
-- 【Việc chưa giải quyết】… (mỗi sự kiện vẫn mở đầu bằng【thời gian】, mỗi mục một dòng)
-- Các mục theo dõi tùy chỉnh còn lại: xuất nguyên dạng đoạn【tiêu đề】theo tiêu đề gốc.
-- 【Địa điểm】(nếu nguyên văn có thì xuất nguyên dạng, bọc bằng <<<LOCATIONS>>>…<<<LOCATIONS_END>>>, mỗi dòng một tên địa danh cốt lõi)
-Đoạn nào không có nội dung có thể bỏ qua. Chỉ xuất văn bản sau khi nén, không kèm bất kỳ giải thích nào.
-【Nội dung nhạy cảm · Luật thép triển khai (phải tuân thủ nghiêm ngặt, thà xuất dài chứ không được mất/cắt cụt)】:
-- Nếu nguyên văn có bạo lực, tương tác người lớn, sỉ nhục, ép buộc, thương bệnh, máu me, quan hệ bệnh hoạn, thay đổi trạng thái sinh lý/tinh thần và các nội dung nhạy cảm khác,【bắt buộc giữ nguyên vẹn đầy đủ sự kiện đó】, không được vì mức độ nội dung mà bỏ qua, cắt bớt, làm mờ, khái quát hóa, càng không được chỉ giữ nửa sau của mục đó hoặc chỉ đưa ra tóm lược.
-- Cấm "cắt cụt sự kiện có từ nhạy cảm chỉ giữ phần đuôi" hoặc "chỉ xuất phần vô thưởng vô phạt" —— mỗi sự kiện hoặc giữ đầy đủ (cho phép dùng từ ngữ khách quan trung tính, nhưng không được mất sự thật then chốt), hoặc nói rõ lý do sự kiện đó bị bỏ qua, tuyệt đối không được lặng lẽ làm mất nội dung nữa.
-- Bạn không sáng tác cốt truyện, chỉ đang nén lưu trữ khách quan cốt truyện đã xảy ra, vì vậy không tồn tại rủi ro về mức độ nội dung; mục nào càng nhạy cảm, càng liên quan trạng thái nhiều chủ thể/quan hệ/đe dọa hứa hẹn/ép buộc/thân mật thì càng phải nén giữ lại đầy đủ trung thực, đảm bảo phần viết tiếp sau có thể nối liền.
-- Nếu vì bất kỳ lý do gì không làm được việc giữ đầy đủ, thà xuất dài hơn 2/3, chứ không được có đầu ra kiểu "cụt đuôi, mất đầu, chỉ giữ phần cuối". Hãy đếm lại một lượt, đảm bảo mỗi trường xuất ra đều đầy đủ hơn đầu vào, không thiếu sự kiện.`;
+  const COMPRESS_PROMPT = CD_COMPRESS_PROMPT;
 
   const res = await cdWithTimeout(cdApiComplete([
-    { role: 'system', content: (function () { const _jb = (typeof JAILBREAK !== "undefined" && JAILBREAK) ? (Array.isArray(JAILBREAK) ? JAILBREAK.join("\n") : String(JAILBREAK)) : ""; return (_jb ? _jb + "\n\n" : "") + COMPRESS_PROMPT; })() },
+    { role: 'system', content: (function () { const _jb = (typeof JAILBREAK !== "undefined" && JAILBREAK) ? (Array.isArray(JAILBREAK) ? JAILBREAK.join("\n") : String(JAILBREAK)) : ""; return (_jb ? _jb + "\n\n" : "") + cdApplyPromptCustom('compress', COMPRESS_PROMPT); })() },
     { role: 'user', content: joinText },
   ], s), 180000, 'Tự động nén');
 
@@ -2700,19 +2906,32 @@ Hãy xuất nghiêm ngặt theo các đoạn sau, mỗi đoạn mở đầu bằ
     const out = cdParseCompressedBlocks(res.text, labels);
     // ★ DIAG: kết quả phân tích theo từng trường
     cdAddLog('info', '[COMPRESS-DIAG] Kết quả phân tích out', (function () { const o = {}; for (const f of fields) o[labels[f]] = (out[f] && String(out[f]).length) || 0; return o; })());
-    let replacedAny = false;
+    // FIX33: cho phép “làm trống thật”. Cách viết cũ đòi length>0 nên khi AI nén một đoạn thành rỗng sẽ bị bỏ qua,
+    // nội dung cũ vẫn còn nguyên —— đây chính là nguyên nhân khiến người dùng thấy “nén mãi không giảm”.
+    // Tầng phân tích chỉ gán giá trị cho các tiêu đề có xuất hiện, không xuất hiện là undefined, nên kiểm tra bằng typeof:
+    // chuỗi rỗng = AI chủ đích xóa sạch (cho qua), undefined = không nhắc tới (bỏ qua, không xóa nhầm).
+    // ★ Quy tắc thứ tự: tính projected trước rồi mới ghi vào archive. Kiểm tra phải xong trước khi ghi,
+    //   nếu không lúc ném lỗi hồ sơ đã bị ghi hỏng.
+    const projected = {};
+    let replacedCount = 0;
     for (const f of fields) {
-      if (out[f] && typeof out[f] === 'string' && out[f].length) {
-        cdAddLog('info', `Tự động nén ${labels[f]}: ${String(archive[f] || '').length}→${out[f].length} chữ`);
-        archive[f] = out[f];
-        replacedAny = true;
-      }
+      if (typeof out[f] === 'string') { projected[f] = out[f]; replacedCount++; }
+      else projected[f] = archive[f];
     }
-    if (!replacedAny) {
+    if (!replacedCount) {
       // Có trả về nhưng không phân tích ra được trường nào: báo lỗi rõ ràng, không giả vờ thành công nữa
       throw new Error('Nén thất bại: AI đã trả về nội dung nhưng không phân tích được theo các tiêu đề như【Tuyến chính】, hãy kiểm tra định dạng trả về (xem nhật ký COMPRESS-DIAG)');
     }
-    cdAddLog('info', '[COMPRESS-DIAG] Điền lại thành công, đã thay ' + replacedAny + ' trường', { mainline: String(archive.mainline || '').length, sideline: String(archive.sideline || '').length, states: String(archive.states || '').length, unresolved: String(archive.unresolved || '').length });
+    // Cả bốn trường chính đều bị xóa sạch không phải “nén” mà là AI trả về bất thường. Lúc này archive chưa bị sửa, từ chối thẳng.
+    if (fields.every(f => !String(projected[f] || '').trim())) {
+      throw new Error('Nén thất bại: AI đã xóa sạch mọi trường (đây không phải nén mà là mất hồ sơ), đã giữ nguyên hồ sơ gốc, hãy thử lại');
+    }
+    for (const f of fields) {
+      if (typeof out[f] !== 'string') continue;
+      cdAddLog('info', `Tự động nén ${labels[f]}: ${String(archive[f] || '').length}→${out[f].length} chữ`);
+      archive[f] = out[f];
+    }
+    cdAddLog('info', '[COMPRESS-DIAG] Điền lại thành công, đã thay ' + replacedCount + ' trường', { mainline: String(archive.mainline || '').length, sideline: String(archive.sideline || '').length, states: String(archive.states || '').length, unresolved: String(archive.unresolved || '').length });
     // Mục theo dõi tùy chỉnh: nếu AI xuất bản đã gộp theo tiêu đề tùy chỉnh thì thử điền lại (đơn giản hóa: giữ giá trị gốc + gộp các mục cũ vượt hạn mức)
   } else {
     // Không có văn bản trả về: báo lỗi rõ ràng
@@ -3928,9 +4147,8 @@ async function cdBuildDiaryInjectionText() {
           const chat2 = (typeof _cdGetChat === 'function') ? _cdGetChat() : [];
           // ★ Chỉ lấy “cửa sổ tầng gần nhất” để xác định nhân vật xuất hiện (tránh cả cuộc chat khiến mọi nhân vật đều bị tính là xuất hiện)
           const _win = (chat2 && chat2.length) ? chat2.slice(-(Math.max(2, parseInt(s.diaryCharWindow,10)||16))) : (chat2 || []);
-          const sceneTxt = _win
-            .map(m => (m && (m.mes || m.message)) ? (m.name || '') + ': ' + (m.mes || m.message) : '')
-            .join('\n');
+          // ★ FIX36: ở chế độ danh sách trắng cũng chỉ xét nhân vật xuất hiện từ chữ bên trong thẻ
+          const sceneTxt = cdFilteredSceneLines(_win, s, m => (m.name || '') + ':').join('\n');
           const capt = cdCaptureCast(sceneTxt, data);
           if (capt && capt.length) namesToInject = capt;
           // ★ Chẩn đoán lúc chạy: khi chèn thật rốt cuộc bắt được ai, cửa sổ lớn bao nhiêu
@@ -3981,8 +4199,8 @@ async function cdBuildDiaryInjectionText() {
       // ★ Chế độ vector: truy xuất vài mục liên quan nhất từ hồ sơ lịch sử để chèn, tránh chèn toàn bộ mấy vạn token
       if (s.archiveMode === 'vector' && Array.isArray(data.archiveVectors) && data.archiveVectors.length > 0 && typeof cdSearchVectors === 'function') {
         const chat = _cdGetChat();
-        const recent = (Array.isArray(chat) ? chat.slice(-6) : [])
-          .map(function (m) { return (m && m.mes) ? m.mes : ''; }).join('\n');
+        // ★ FIX36: ở chế độ danh sách trắng, từ khóa truy xuất cũng chỉ lấy chữ bên trong thẻ (trước đây ghép thẳng m.mes khiến phần ngoài thẻ làm nhiễu query)
+        const recent = cdFilteredSceneLines(Array.isArray(chat) ? chat.slice(-6) : [], s, function () { return ''; }).join('\n');
         const topK = s.vectorTopK || 5;
         const threshold = s.vectorThreshold || 0.6;
         let results = await cdSearchVectors(recent || 'cốt truyện hiện tại', data.archiveVectors, topK, threshold);
@@ -5099,6 +5317,54 @@ function cdCopyDiagnostic() {
     }
   } catch (e) { /* Tiếp tục đi đường hạ cấp */ }
   cdDiagnosticFallback(text);
+}
+
+/** Sao chép văn bản dùng chung (FIX35): clipboard thất bại sẽ tự hạ cấp sang textarea + execCommand
+ *  ★ Không gọi thẳng navigator.clipboard: Tavern thường chạy trên địa chỉ http:// mạng LAN,
+ *    trong ngữ cảnh không bảo mật clipboard có thể không tồn tại hoặc bị từ chối, gọi thẳng sẽ im lặng không phản hồi.
+ *  @param {string} text Văn bản cần sao chép
+ *  @param {string} [okMsg] Thông báo khi thành công
+ *  @param {string} [emptyMsg] Thông báo khi nội dung rỗng
+ */
+function cdCopyPlain(text, okMsg, emptyMsg) {
+  const t = String(text == null ? '' : text);
+  if (!t.trim()) {
+    if (typeof toastr !== 'undefined' && toastr.info) toastr.info(emptyMsg || 'Đoạn này đang trống, không có nội dung để sao chép');
+    return;
+  }
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(t).then(function () {
+        if (typeof toastr !== 'undefined' && toastr.success) toastr.success(okMsg || 'Đã sao chép');
+      }).catch(function () { cdCopyPlainFallback(t, okMsg); });
+      return;
+    }
+  } catch (e) { /* Tiếp tục đi đường hạ cấp */ }
+  cdCopyPlainFallback(t, okMsg);
+}
+
+/** Đường hạ cấp của cdCopyPlain: tạo textarea ẩn + execCommand('copy') */
+function cdCopyPlainFallback(text, okMsg) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    ta.style.top = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (_e) { ok = false; }
+    try { document.body.removeChild(ta); } catch (_e2) {}
+    if (ok) {
+      if (typeof toastr !== 'undefined' && toastr.success) toastr.success(okMsg || 'Đã sao chép');
+    } else if (typeof toastr !== 'undefined' && toastr.info) {
+      toastr.info('Trình duyệt không cho tự động sao chép, vui lòng bôi đen chữ để sao chép thủ công');
+    }
+  } catch (e) {
+    if (typeof toastr !== 'undefined' && toastr.error) toastr.error('Sao chép thất bại: ' + ((e && e.message) || e));
+  }
 }
 
 
@@ -9290,6 +9556,7 @@ async function cdRefreshPanelContent() {
     case 'save':     cdRenderSave(); break;
     case 'phone':    cdRenderPhone(); break;
     case 'inject':   cdRenderInject(); break;
+    case 'prompt':   cdRenderPromptPage(); break;   // ★ FIX34 chỉnh sửa prompt
     case 'theatre':  cdRenderTheatre(); break;
     case 'vector':   cdRenderVector(); break;
     case 'manage':   await cdRenderManage(); break;
@@ -10199,6 +10466,7 @@ const CD_DASH_TOOLS = [
   { ic: 'fa-regular fa-table',           t: 'Bảng tình báo',   mode: 'table'   },
   { ic: 'fa-regular fa-download',        t: 'Xuất',     mode: 'export'  },
   { ic: 'fa-regular fa-clipboard-list',  t: 'Log',     mode: 'log'     },
+  { ic: 'fa-regular fa-pen-to-square',  t: 'Prompt',   mode: 'prompt'  },
   { ic: 'fa-regular fa-tag',             t: 'Lịch sử cập nhật', mode: 'changelog', upd: true },
   { ic: 'fa-regular fa-circle-question', t: 'Trợ giúp',     mode: 'help'    },
   { ic: 'fa-regular fa-gem',             t: 'Trứng phục sinh',     mode: 'egg'     }
@@ -11001,7 +11269,7 @@ function cdMarkSettingsClean() {
    đồng thời thống nhất tên gọi theo tên trên thẻ lối vào, tránh breadcrumb và chữ trên nút không khớp nhau. */
 var CD_VIEW_LABEL = { home: 'Trang chủ', browse: 'Nhật ký', archive: 'Cốt truyện', graph: 'Trạng thái', save: 'Bản lưu', phone: 'Điện thoại', inject: 'Chèn',
   vector: 'Kho vector', manage: 'Quản lý dữ liệu', floors: 'Viết bù tầng', backfill: 'Điền lại', clear: 'Dọn dẹp', timeline: 'Dòng thời gian', export: 'Xuất',
-  studio: 'Quản lý nội dung',
+  studio: 'Quản lý nội dung', prompt: 'Prompt',
   egg: 'Trứng phục sinh', log: 'Log', changelog: 'Nhật ký cập nhật', help: 'Trợ giúp', forum: 'Diễn đàn', theatre: 'Kịch trường', table: 'Bảng tình báo',
   __settings: 'Thiết lập', __forum: 'Diễn đàn' };
 function cdSyncCrumb(mode) {
@@ -11220,7 +11488,64 @@ const CD_SETTING_HELP = {
   'cd-s-cameo': ['Nhân vật qua đường xuất hiện đủ N lần thì nâng thành nhân vật chính thức, mới bắt đầu viết nhật ký cho họ.',
                  'Mặc định 3. Đặt 1 sẽ lập hồ sơ cho mọi vai quần chúng, danh sách sẽ rất rối.'],
   'cd-s-retry': ['Request thất bại thì tự thử lại mấy lần, mỗi lần cách mấy giây.',
-                 'Mạng không ổn định hoặc dùng gateway rẻ thì chỉnh lớn lên chút (mặc định 3 lần / 2 giây).']
+                 'Mạng không ổn định hoặc dùng gateway rẻ thì chỉnh lớn lên chút (mặc định 3 lần / 2 giây).'],
+
+  /* ★ FIX37b: bổ sung giải thích cho 17 mục cài đặt còn lại. Bỏ qua 4 mục sau (giữ lý do ở đây để không thêm nhầm):
+       cd-tone-file          —— <input type=file> bị ẩn, dấu ? sẽ gắn nhầm sang dòng “Thời điểm kích hoạt”
+       cd-tone-name          —— chữ hiển thị tên âm báo hiện tại, không phải mục chỉnh sửa
+       cd-s-relation         —— dòng này display:none (chức năng quan hệ nhân vật đã ngừng dùng)
+       cd-s-inject-relation  —— tương tự, phía chèn cũng đã ngừng dùng */
+  'cd-s-charimg': ['Ảnh đại diện nhân vật dùng cho nút nổi, thanh chào mừng trang hướng dẫn và trạng thái trống của nhật ký.',
+                   'Có sẵn 9 ảnh, hãy chọn nhân vật bạn đang trò chuyện.',
+                   'Đây là ảnh trang trí riêng của plugin, không ảnh hưởng tới avatar thẻ nhân vật của Tavern.'],
+  'cd-s-charoff': ['Bật lên thì toàn bộ plugin chỉ giữ giao diện thuần chữ, ẩn hết ảnh đại diện, ảnh bìa và banner chào mừng.',
+                   'Nên bật nếu thấy rối mắt hoặc ảnh có sẵn không hợp với nhân vật bạn đang chơi.',
+                   'Chỉ khi bật mục này thì công tắc “Ảnh bìa thẻ” bên dưới mới thấy rõ sự khác biệt.'],
+  'cd-s-cardcover': ['Dùng ảnh nhân vật làm ảnh bìa nền cho thẻ nhật ký ở trang chủ và các ô bản lưu (tắt đi sẽ thành thẻ màu trơn).',
+                     'Mặc định bật.',
+                     '★ Phải bật mục “Không hiện ảnh nhân vật” ở trên trước thì mới thấy rõ tác dụng của công tắc này.'],
+  'cd-s-theme': ['Bảng màu của panel plugin, gồm 4 chủ đề: Nền mực dát vàng (tối) / Sứ trắng (trắng lạnh) / Giấy tuyên (vàng kem) / Than chì (xám).',
+                 '“Theo Tavern” sẽ tự chuyển theo chế độ sáng/tối hiện tại của Tavern.',
+                 'Đổi chủ đề không ảnh hưởng dữ liệu, đổi qua lại lúc nào cũng được.'],
+  'cd-s-dotnotify': ['Khi có nhật ký mới được viết xong, nút nổi sẽ hiện một chấm đỏ nhỏ.',
+                     'Nếu tắt thì phải tự mở vào xem mới biết đã viết hay chưa.',
+                     'Chấm đỏ chỉ là thông báo, xem xong sẽ tự tắt, không phải báo lỗi.'],
+  'cd-s-forumdirect': ['Bật: bấm nút nổi vào thẳng “Diễn đàn Thế giới”; tắt: bấm nút nổi vào trang chủ plugin.',
+                       'Nếu bạn chủ yếu dùng diễn đàn thì bật lên cho đỡ thêm một cú bấm.',
+                       'Chưa chắc thì cứ để tắt, từ trang chủ vẫn vào diễn đàn được bình thường.'],
+  'cd-s-replytone': ['Phát một tiếng chuông khi AI tạo xong trọn vẹn câu trả lời để nhắc bạn quay lại xem.',
+                     'Mặc định bật, thấy ồn có thể tắt.',
+                     'Mục “Thời điểm kích hoạt” bên dưới quyết định lúc nào kêu: chỉ sau khi AI trả lời / chỉ sau khi plugin tóm tắt / cả hai.'],
+  'cd-s-autoscrolltop': ['Sau khi AI trả lời xong, giao diện sẽ cuộn mượt về đầu câu trả lời đó.',
+                         'Rất tiện khi câu trả lời dài, đỡ phải tự kéo ngược lên.',
+                         'Không thích trang tự cuộn thì tắt đi.'],
+  'cd-s-autosummary': ['Tới đúng “Tần suất xử lý” thì tự chạy một lượt tóm tắt (viết nhật ký + cập nhật hồ sơ cốt truyện).',
+                       'Tắt = chỉ chạy khi bạn bấm tóm tắt thủ công.',
+                       '★ Hay tắt khi vào cảnh NSFW. Ô đầu tiên trong hàng “Công cụ” ở trang chủ là nút tạm dừng/tiếp tục một chạm, không cần vào thiết lập.'],
+  'cd-s-diaryver': ['Độ dài nhật ký nhân vật: Bản phức tạp 300~520 chữ (có diễn biến nội tâm và chi tiết), Bản ngắn dưới 100 chữ (chỉ ghi ý chính).',
+                    'Bản phức tạp đọc cuốn hơn nhưng cũng tốn token hơn.',
+                    'Nhật ký đã viết rồi sẽ không bị sửa lại, mục này chỉ áp dụng cho nhật ký viết mới sau đó.'],
+  'cd-s-diarycharfilter': ['Bật: mỗi lần chỉ chèn nhật ký của “các nhân vật có xuất hiện trong đoạn cốt truyện hiện tại”. Tắt: nhét vài bài mới nhất của tất cả nhân vật.',
+                           'Khi có nhiều nhân vật, bật mục này giúp tiết kiệm token rõ rệt.',
+                           'Việc nhận diện dựa vào “Cửa sổ xác định xuất hiện” bên dưới —— ai xuất hiện trong từng đó tầng gần nhất thì chèn người đó.'],
+  'cd-s-diarycharlimit': ['Số bài nhật ký gần nhất sẽ chèn cho mỗi nhân vật.',
+                          'Mặc định 3. Đặt 1 chỉ gửi bài mới nhất; đặt từ 5 trở lên liền mạch hơn nhưng tốn token hơn.',
+                          'Dùng kết hợp với “Chèn theo nhân vật xuất hiện” ở trên; chỉnh riêng lẻ ít có ý nghĩa.'],
+  'cd-s-diarycharwindow': ['Nhìn ngược lại bao nhiêu tầng để xác định “ai đang xuất hiện”.',
+                           'Mặc định 16.',
+                           '★ Đặt quá nhỏ (2~4) dễ sót người; đặt quá lớn (trên 40) sẽ tính nhầm cả nhân vật đã rời đi từ lâu.'],
+  'cd-s-sum-inject-diary': ['Khi tóm tắt tự động/thủ công, ngoài các tầng cần tóm tắt, có gửi kèm nhật ký nhân vật đã có cho AI không.',
+                            'Mặc định tắt: tiết kiệm token nhất, nhưng AI sẽ không biết trước đó mình đã viết gì.',
+                            'Bật lên thì mạch nhật ký liền lạc hơn, đổi lại tốn token hơn.'],
+  'cd-s-sum-inject-archive': ['Khi tóm tắt có gửi kèm hồ sơ cốt truyện hiện có hay không.',
+                              'Mặc định tắt (tiết kiệm token). Hồ sơ dài mà bật lên sẽ tốn hơn đáng kể.',
+                              'Nếu thấy AI hay viết lặp lại chuyện đã lưu hồ sơ rồi, có thể bật lên thử.'],
+  'cd-s-aifilter': ['Bóc bỏ phần chuỗi suy nghĩ do model suy luận trả về (như <think>, <reasoning> của DeepSeek), không để lẫn vào nhật ký.',
+                    'Mặc định bật, đã có sẵn vài thẻ phổ biến và có thể tự thêm vào danh sách bên dưới.',
+                    '★ Nếu tắt, quá trình suy nghĩ của AI sẽ bị coi là cốt truyện và ghi vào nhật ký/hồ sơ.'],
+  'cd-s-autohide-keep': ['Khi tự động ẩn các tầng cũ, chừa lại bao nhiêu tầng cuối không ẩn (tính cả tin nhắn của người dùng).',
+                         'Mặc định 5.',
+                         '★ Đặt quá nhỏ sẽ ẩn mất đoạn vừa chat; đặt quá lớn (trên 30) thì coi như không ẩn, tốn token vô ích.']
 };
 
 /** Thêm “?” cho các dòng có giải thích trong panel thiết lập, bấm vào thì mở phần giải thích bên dưới dòng. Lũy đẳng, gọi lặp được. */
@@ -11235,7 +11560,8 @@ function cdApplySettingHelp(root) {
       if (row.querySelector('.cds-q')) continue;      // Đã thêm rồi
       var ctl = row.querySelector('[id]');
       if (!ctl) continue;
-      var lines = CD_SETTING_HELP[ctl.id];
+      // ★ FIX37: bắt buộc dùng const + truyền tham số để tránh closure chia sẻ chung biến lines
+      const lines = CD_SETTING_HELP[ctl.id];
       if (!lines) continue;
       var lab = row.querySelector('.cds-lab');
       if (!lab) continue;
@@ -11245,8 +11571,7 @@ function cdApplySettingHelp(root) {
       q.textContent = '?';
       q.setAttribute('role', 'button');
       q.setAttribute('title', 'Bấm để xem mục này dùng để làm gì');
-      // Truyền lines vào closure: bản gốc dùng `var lines` chung cho cả vòng lặp → mọi nút “?” đều hiện giải thích của dòng cuối cùng
-      q.onclick = (function (rowEl, lines) {
+      q.onclick = (function (rowEl, linesArr) {
         return function (e) {
           if (e && e.stopPropagation) e.stopPropagation();
           var box = rowEl.nextElementSibling;
@@ -11257,8 +11582,8 @@ function cdApplySettingHelp(root) {
           var d = document.createElement('div');
           d.className = 'cds-help';
           var html = '';
-          for (var k = 0; k < lines.length; k++) {
-            html += '<div class="cds-help-l">' + escapeHtml(String(lines[k])) + '</div>';
+          for (var k = 0; k < linesArr.length; k++) {
+            html += '<div class="cds-help-l">' + escapeHtml(String(linesArr[k])) + '</div>';
           }
           d.innerHTML = html;
           if (rowEl.parentNode) rowEl.parentNode.insertBefore(d, rowEl.nextSibling);
@@ -13379,8 +13704,10 @@ try {
   };
   var _arcSec = function (lab, txt, ph) {
     var _t = String(txt || '');
-    return '<div style="margin-bottom:12px;">' +
-      '<div style="font-size: calc(0.62rem * var(--cd-fs,1));font-weight:700;color:#6b4a1b;margin:0 0 4px;letter-spacing:.5px;display:flex;align-items:center;gap:6px;">— ' + escapeHtml(lab) + ' —' + _arcFmtTag(lab) + '</div>' +
+    return '<div class="cd-arch-sec" data-arch-lab="' + escapeAttr(lab) + '" style="margin-bottom:12px;">' +
+      '<div style="font-size: calc(0.62rem * var(--cd-fs,1));font-weight:700;color:#6b4a1b;margin:0 0 4px;letter-spacing:.5px;display:flex;align-items:center;gap:6px;">— ' + escapeHtml(lab) + ' —' + _arcFmtTag(lab) +
+      '<button type="button" class="cd-arch-copy" data-arch-copy="' + escapeAttr(lab) + '" title="Chỉ sao chép đoạn này" style="margin-left:auto;font-size:calc(0.54rem * var(--cd-fs,1));font-weight:600;color:#8b6a2f;background:#fbf5e6;border:1px solid #e3d5b8;border-radius:6px;padding:1px 8px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;letter-spacing:0;"><i class="fa-regular fa-copy"></i>Sao chép</button>' +
+      '</div>' +
       '<textarea spellcheck="false" rows="4" data-arch-key="' + escapeAttr(lab) + '" placeholder="' + escapeAttr(ph) + '" style="width:100%;box-sizing:border-box;padding:6px;font-size: calc(0.62rem * var(--cd-fs,1));background:#fffdf6;border:1px solid #e3d5b8;border-radius:6px;color:#3c2f1f;resize:vertical;line-height:1.6;">' + escapeHtml(_t) + '</textarea>' +
       '</div>';
   };
@@ -13398,10 +13725,29 @@ try {
     '<div style="padding:10px 12px 12px;border-top:1px solid #ede2cc;">' +
     '<p style="font-size: calc(0.55rem * var(--cd-fs,1));color:#8b7355;margin:0 0 10px;line-height:1.6;">Đây là nguyên văn toàn bộ hồ sơ cốt truyện, dùng để sửa nội dung sẽ được gửi cho AI. Các tiêu đề nhỏ màu đen như “— Tuyến chính —” không thể xóa, cứ sửa thẳng phần chữ bên dưới tiêu đề; thay đổi chỉ có hiệu lực sau khi bấm “Lưu” ở góc dưới bên phải, và sẽ đồng bộ lên dòng thời gian ở trên.</p>' +
     _archEditHtml +
-    '<div style="display:flex;justify-content:flex-end;margin-top:8px;">' +
+    '<div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;">' +
+    '<button type="button" class="cd-btn-secondary" id="cd-arch-copy-all" style="font-size: calc(0.65rem * var(--cd-fs,1));padding:6px 14px;min-width:auto;"><i class="fa-regular fa-copy"></i> Sao chép toàn bộ hồ sơ</button>' +
     '<button type="button" class="cd-btn-primary" id="cd-arch-rawedit-save" style="font-size: calc(0.65rem * var(--cd-fs,1));padding:6px 16px;min-width:auto;"><i class="fa-regular fa-floppy-disk"></i> Lưu</button>' +
     '</div></div></details></div>';
   $('#cd-content').append(_archEditBlock);
+  // ★ FIX35 sao chép một chạm: off('.archcopy') một lần rồi gắn liên tiếp on,
+  //   không gọi off riêng cho từng selector tránh xóa mất nhau.
+  $('#cd-content').off('.archcopy')
+    .on('click.archcopy', '.cd-arch-copy', function () {
+      const $sec = $(this).closest('.cd-arch-sec');
+      const lab = String($sec.attr('data-arch-lab') || '');
+      const txt = $sec.find('textarea').first().val();
+      cdCopyPlain(txt, 'Đã sao chép đoạn “' + lab + '”', '“' + lab + '” đang trống, không có nội dung để sao chép');
+    })
+    .on('click.archcopy', '#cd-arch-copy-all', function () {
+      const parts = [];
+      $('#cd-content .cd-arch-sec').each(function () {
+        const lab = String($(this).attr('data-arch-lab') || '');
+        const txt = String($(this).find('textarea').first().val() || '').trim();
+        if (txt) parts.push('— ' + lab + ' —\n' + txt);
+      });
+      cdCopyPlain(parts.join('\n\n'), 'Đã sao chép toàn bộ hồ sơ cốt truyện (' + parts.length + ' đoạn)', 'Toàn bộ hồ sơ đang trống, không có nội dung để sao chép');
+    });
   // Lưu: ghi từng textarea theo nhãn trở lại các trường archive
   $('#cd-content').off('click', '#cd-arch-rawedit-save').on('click', '#cd-arch-rawedit-save', async function () {
     try {
@@ -14067,24 +14413,160 @@ async function cdDiagFloorSource(resultBox) {
   if (typeof toastr !== 'undefined') toastr.info('Chẩn đoán nguồn dữ liệu tầng xong, kết quả đã hiển thị bên dưới');
 }
 
+/* ============================== Trang chỉnh sửa Prompt (FIX34) ============================== */
+/* Lối vào tùy chỉnh ba loại prompt. Trang chỉ phụ trách "đọc/ghi thiết lập + hiển thị mặc định",
+   còn việc ghép tùy chỉnh vào prompt thật do cdApplyPromptCustom đảm nhận, cả hai khớp nhau qua cùng key. */
+var _cdPromptTab = 'diary';
+
+/** Sau khi tiếp quản toàn bộ thì từng loại sẽ mất tự động thích ứng nào */
+function cdPromptOvNote(kind) {
+  if (kind === 'diary') return 'Sau khi tiếp quản: dòng ghi chép lần đầu, yêu cầu độ dài bản ngắn/bản đầy đủ, và quy tắc loại trừ chế độ GM sẽ không còn tự đổi nữa — tất cả phụ thuộc vào văn bản của bạn.';
+  if (kind === 'archive') return 'Sau khi tiếp quản: các công tắc trường hồ sơ cốt truyện trong thiết lập (tuyến phụ/trạng thái/chưa giải quyết/nhiệm vụ/tổng quan/chương hồi) sẽ không còn hiệu lực, phong cách ghi (bản hội thoại/bản thường) cũng không còn tự chuyển.';
+  if (kind === 'compress') return 'Sau khi tiếp quản: chỉ ảnh hưởng tới yêu cầu định dạng đầu ra của lần nén đó, không làm thay đổi cấu trúc hồ sơ.';
+  return '';
+}
+
+/** HTML của một khung tab. Văn bản mặc định luôn lấy trực tiếp, không cache. */
+function cdPromptPaneHtml(kind) {
+  var meta = null;
+  for (var i = 0; i < CD_PROMPT_KINDS.length; i++) if (CD_PROMPT_KINDS[i].key === kind) meta = CD_PROMPT_KINDS[i];
+  if (!meta) return '';
+  var cfg = cdPromptCfg(kind);
+  var def = cdPromptDefaultText(kind);
+  var esc = (typeof _cdEsc === 'function') ? _cdEsc : function (x) { return String(x == null ? '' : x); };
+  return '' +
+    '<div class="cd-pc-pane" data-pc-kind="' + kind + '">' +
+      '<p class="cd-pc-desc">' + esc(meta.desc) + '</p>' +
+      '<div class="cd-pc-warn"><i class="fa-regular fa-triangle-exclamation"></i> ' + esc(meta.warn) + '</div>' +
+
+      '<div class="cd-pc-label">Thêm yêu cầu<span class="cd-pc-sub">（giữ nguyên từng chữ prompt gốc, nối yêu cầu của bạn vào cuối）</span></div>' +
+      '<textarea class="cd-input cd-pc-ta" id="cd-pc-append" rows="6" placeholder="Ví dụ: viết nhật ký ngắn hơn, mỗi bài không quá 200 chữ; nhấn mạnh tâm lý ấm ức của nhân vật X chứ đừng chỉ kể chuyện bề mặt.">' + esc(cfg.append) + '</textarea>' +
+
+      '<label class="cd-pc-sw"><input type="checkbox" id="cd-pc-useoverride"' + (cfg.useOverride ? ' checked' : '') + '>' +
+        '<span>Nâng cao: tiếp quản toàn bộ prompt gốc</span></label>' +
+
+      '<div class="cd-pc-ov" id="cd-pc-ovwrap"' + (cfg.useOverride ? '' : ' style="display:none;"') + '>' +
+        '<div class="cd-pc-note">' + esc(cdPromptOvNote(kind)) + '</div>' +
+        '<textarea class="cd-input cd-pc-ta cd-pc-ta-lg" id="cd-pc-override" rows="16" placeholder="Bấm “Tải mặc định hiện tại” bên dưới để điền nguyên văn bản gốc vào rồi sửa sẽ an toàn hơn viết từ đầu.">' + esc(cfg.override) + '</textarea>' +
+        '<button type="button" class="cd-btn-secondary" id="cd-pc-loaddef" style="margin-top:6px;">Tải mặc định hiện tại (ghi đè ô này)</button>' +
+      '</div>' +
+
+      '<details class="cd-pc-defbox"><summary>Xem prompt mặc định hiện tại (chỉ đọc · ' + def.length + ' ký tự)</summary>' +
+        '<pre class="cd-pc-pre">' + esc(def) + '</pre></details>' +
+
+      '<div class="cd-pc-acts">' +
+        '<button type="button" class="cd-btn-primary" id="cd-pc-save">Lưu mục này</button>' +
+        '<button type="button" class="cd-btn-secondary" id="cd-pc-reset">Khôi phục mặc định (xóa tùy chỉnh)</button>' +
+      '</div>' +
+      '<p class="cd-pc-tip">Sửa xong nhớ bấm “Lưu mục này”. Ô chỉ đọc bên trên là bản gốc, không sửa trực tiếp được; muốn sửa toàn bộ hãy bật “tiếp quản toàn bộ”.</p>' +
+    '</div>';
+}
+
+/** Chỉ vẽ lại nội dung khung tab, không vẽ lại cả trang */
+function cdPromptPaintPane(kind) {
+  var box = document.getElementById('cd-pc-body');
+  if (!box) return;
+  box.innerHTML = cdPromptPaneHtml(kind);
+  var tabs = document.querySelectorAll('.cd-studio-tab[data-pc-tab]');
+  for (var i = 0; i < tabs.length; i++) {
+    var on = tabs[i].getAttribute('data-pc-tab') === kind;
+    tabs[i].className = 'cd-studio-tab' + (on ? ' on' : '');
+  }
+}
+
+/** Ghi dữ liệu đang nhập trên khung hiện tại vào thiết lập */
+function cdPromptSavePane(kind) {
+  kind = kind || _cdPromptTab;
+  var apEl = document.getElementById('cd-pc-append');
+  var ovEl = document.getElementById('cd-pc-override');
+  var swEl = document.getElementById('cd-pc-useoverride');
+  if (!apEl && !ovEl && !swEl) return false;
+  var s = cdGetSettings();
+  var all = Object.assign({}, (s && s.promptCustom) || {});
+  all[kind] = {
+    append: apEl ? String(apEl.value || '') : '',
+    override: ovEl ? String(ovEl.value || '') : '',
+    useOverride: swEl ? !!swEl.checked : false
+  };
+  cdSaveSettings({ promptCustom: all });
+  /* Đọc lại để đối chiếu xem đã ghi thật vào settings chưa */
+  var back = cdPromptCfg(kind);
+  return back.append === all[kind].append && back.override === all[kind].override && back.useOverride === all[kind].useOverride;
+}
+
+async function cdRenderPromptPage() {
+  var esc = (typeof _cdEsc === 'function') ? _cdEsc : function (x) { return String(x == null ? '' : x); };
+  var tabs = CD_PROMPT_KINDS.map(function (k) {
+    return '<div class="cd-studio-tab' + (k.key === _cdPromptTab ? ' on' : '') + '" data-pc-tab="' + k.key + '">' +
+      '<i class="' + k.icon + '"></i>' + esc(k.name) + '</div>';
+  }).join('');
+
+  var h = '' +
+    '<div class="cd-prompt-page">' +
+      '<details class="cd-tip">' +
+        '<summary>Trang này dùng để làm gì? Sửa có sợ hỏng không?<span class="cd-tip-toggle"></span></summary>' +
+        '<div class="cd-tip-body">' +
+          '<p><b>Có hai cách chỉnh, chọn theo nhu cầu:</b></p>' +
+          '<div class="tip-step"><b>①</b><span><b>Thêm yêu cầu</b> (khuyên dùng): giữ nguyên prompt gốc, chỉ nối thêm yêu cầu của bạn vào cuối. Hợp với nhu cầu “viết ngắn lại”, “tả kỹ tâm lý nhân vật X”. Không làm hỏng định dạng.</span></div>' +
+          '<div class="tip-step"><b>②</b><span><b>Tiếp quản toàn bộ</b> (nâng cao): thay thế toàn bộ prompt gốc bằng đoạn của bạn. Tự do nhất, nhưng các quy tắc tự động thích ứng của bản gốc sẽ mất hiệu lực, viết sai định dạng có thể gây mất nội dung.</span></div>' +
+          '<p class="tip-warn"><i class="fa-regular fa-triangle-exclamation"></i> Không cấu hình gì thì hoạt động y hệt trước đây. Lúc nào cũng có thể bấm “Khôi phục mặc định (xóa tùy chỉnh)” để quay về bản gốc.</p>' +
+          '<p class="tip-warn"><i class="fa-regular fa-circle-info"></i> Chế độ gộp (chạy một lần nhật ký + quan hệ + hồ sơ) có áp dụng phần “Thêm yêu cầu” của tab Tóm tắt (Nhật ký); nhưng phần hồ sơ của nó là văn bản riêng nên tùy chỉnh ở tab “Hồ sơ cốt truyện” không áp dụng cho chế độ gộp.</p>' +
+        '</div>' +
+      '</details>' +
+      '<div class="cd-studio-tabs">' + tabs + '</div>' +
+      '<div id="cd-pc-body"></div>' +
+    '</div>';
+
+  $('#cd-content').html(h);
+  cdPromptPaintPane(_cdPromptTab);
+
+  /* ★ off('.prompt') một lần rồi gắn liên tiếp on */
+  var $sc = $('#cd-content');
+  $sc.off('.prompt');
+
+  $sc.on('click.prompt', '.cd-studio-tab[data-pc-tab]', function () {
+    var k = $(this).attr('data-pc-tab');
+    if (!k || k === _cdPromptTab) return;
+    cdPromptSavePane(_cdPromptTab);   // Tự lưu trước khi chuyển tab để không mất nội dung đang sửa
+    _cdPromptTab = k;
+    cdPromptPaintPane(k);
+  });
+
+  $sc.on('change.prompt', '#cd-pc-useoverride', function () {
+    var w = document.getElementById('cd-pc-ovwrap');
+    if (w) w.style.display = this.checked ? '' : 'none';
+  });
+
+  $sc.on('click.prompt', '#cd-pc-loaddef', function () {
+    var t = document.getElementById('cd-pc-override');
+    if (!t) return;
+    if (String(t.value || '').trim() && !confirm('Ô này đang có nội dung, tải bản mặc định sẽ ghi đè lên nó. Tiếp tục?')) return;
+    t.value = cdPromptDefaultText(_cdPromptTab);
+  });
+
+  $sc.on('click.prompt', '#cd-pc-save', function () {
+    var ok = cdPromptSavePane(_cdPromptTab);
+    if (ok) { toastr.success('Đã lưu, sẽ có hiệu lực từ lượt tóm tắt tiếp theo'); }
+    else { toastr.error('Lưu thất bại: không ghi được vào thiết lập, hãy xem log'); }
+  });
+
+  $sc.on('click.prompt', '#cd-pc-reset', function () {
+    if (!confirm('Chắc chắn xóa hết tùy chỉnh của mục này (cả phần thêm yêu cầu và tiếp quản đều đặt về trống)? Xóa xong sẽ quay về prompt gốc.')) return;
+    var s = cdGetSettings();
+    var all = Object.assign({}, (s && s.promptCustom) || {});
+    all[_cdPromptTab] = { append: '', override: '', useOverride: false };
+    cdSaveSettings({ promptCustom: all });
+    cdPromptPaintPane(_cdPromptTab);
+    toastr.info('Đã khôi phục mặc định');
+  });
+}
+if (typeof window !== 'undefined') window.cdRenderPromptPage = cdRenderPromptPage;
+
 async function cdRenderFloors() {
   const data = await cdGetData();
   const allAi = await cdGetAiFloorsSmart();   // ★ Theo summarySource: toàn bộ jsonl / chat
   const lastRecordedFloor = data.lastFloor ?? -1;
   const s = cdGetSettings();
-  const COMPRESS_PROMPT = `【Bây giờ bạn không phải trợ lý trò chuyện, mà là "người chỉnh lý hồ sơ cốt truyện".
-
-Nhiệm vụ của bạn là nén hợp nhất nhiều bản tóm tắt cốt truyện đã được xác nhận thành một bản chính văn tóm tắt tích lũy "gọn hơn, nhưng mọi việc đã xảy ra đều không mất".
-
-Yêu cầu:
-1. Dùng tiếp cách viết và phong cách mà bản tóm tắt tích lũy hiện tại đã hình thành, đừng cưỡng ép đổi sang định dạng khác.
-2. 【Giảm béo không cắt chi, không phải chọn trọng điểm】Cái gọi là nén là kể lại mỗi đoạn bằng câu ngắn hơn, mục tiêu là giữ lại một bản【trọn bộ sự kiện】, chứ không phải chỉ chọn vài việc then chốt. Mọi việc đã xảy ra, dù nhỏ đến đâu cũng không được xóa; có thể gộp các việc nhỏ cùng loại thành một câu, nhưng không được coi như chưa xảy ra. Nghiêm cấm nén sự thật cụ thể thành từ trừu tượng hay câu khái quát (cách diễn đạt mơ hồ kiểu "gặp chút rắc rối").
-3. Giữ ngày tháng, khoảng thời gian, địa điểm, thứ tự trước sau của sự kiện, chuỗi nhân quả xuyên thời gian —— dòng thời gian không được rối, không được nhảy đoạn.
-4. Giữ các thay đổi quan hệ, thay đổi thân phận, thay đổi thương bệnh hay trạng thái sinh lý, lời hứa và giao dịch, việc lưu chuyển vật phẩm hay chứng cứ then chốt.
-5. Mục có thể dọn: việc chưa giải quyết chỉ giữ số ít mục "hiện quan trọng nhất, vẫn đang tiến triển", các mục cũ, đã sang trang có thể xóa; phục bút dài hạn, manh mối dẫn dắt, không khí môi trường, tô vẽ cảm xúc, chuyện thường ngày vụn vặt thì xóa thẳng.
-6. Độ dài sau khi nén khoảng 1/2~2/3 nguyên văn: câu gọn hơn, đoạn dày hơn, nhưng tuyệt đối không nén tới mức chỉ còn vài mạch chính. Thà dài hơn một chút, chứ không được mất những việc đã xảy ra.
-7. Nếu trong nhiều bản tóm tắt có thông tin trùng lặp, phải hợp nhất, đừng chép lặp lại máy móc.
-8. Xuất văn bản thuần, không giải thích, không thuyết minh thừa.】`;
   const arc = data.archive || {};
   const hasArchive = !!(arc.mainline || arc.sideline || arc.states || arc.unresolved || (Array.isArray(arc.items) && arc.items.length) || (arc.custom && Object.values(arc.custom).some(a => Array.isArray(a) && a.length)));
 
@@ -15234,6 +15716,146 @@ ${charHtml}
 }
 
 /* ============================== Panel thiết lập ============================== */
+/* ============================== ★ FIX35 Panel quét thẻ chính văn ==============================
+ * Cho phép người dùng xem tầng hiện tại có những cặp thẻ <xxx> nào, tích chọn “Xóa” hoặc “Giữ” mà không cần gõ tay.
+ * Ba nguyên tắc:
+ *   1) Chỉ quét “tầng hiện tại”, mặc định tầng mới nhất, có thể lật lên/xuống.
+ *   2) “Xóa” và “Giữ” trên cùng một dòng loại trừ lẫn nhau; không tích ô nào = giữ nguyên thẻ đó.
+ *   3) Chỉ cần có bất kỳ dòng nào tích “Giữ”, toàn bộ sẽ chuyển sang chế độ danh sách trắng —— mọi chữ ngoài khối thẻ đều bị bỏ.
+ */
+
+/** Lấy các tầng có thể quét (loại trừ system và tầng rỗng), giữ nguyên thứ tự */
+function cdGetScannableFloors() {
+  try {
+    const ctx = (typeof SillyTavern !== 'undefined' && SillyTavern.getContext) ? SillyTavern.getContext() : null;
+    const chat = (ctx && Array.isArray(ctx.chat)) ? ctx.chat : [];
+    return chat.filter(function (m) {
+      return m && !m.is_system && String(m.mes || '').trim();
+    });
+  } catch (e) {
+    try { cdWarn('cdGetScannableFloors lấy cuộc trò chuyện thất bại', e); } catch (_e) {}
+    return [];
+  }
+}
+
+/** Mở panel quét: mặc định quét tầng mới nhất */
+function cdTagScanStart() {
+  const floors = cdGetScannableFloors();
+  if (!floors.length) {
+    if (typeof toastr !== 'undefined' && toastr.info) toastr.info('Cuộc trò chuyện hiện tại chưa có tầng nào để quét');
+    return;
+  }
+  window.__cdTagScan = { floors: floors, idx: floors.length - 1, stats: [], acts: {} };
+  cdTagScanLoad();
+}
+
+/** Quét lại tầng tương ứng với idx hiện tại */
+function cdTagScanLoad() {
+  const st = window.__cdTagScan;
+  if (!st) return;
+  const f = st.floors[st.idx] || {};
+  st.stats = cdScanTagStats(f.mes || '');
+  st.acts = {};
+  cdRenderTagScanPanel();
+}
+
+/** Render panel quét thẻ */
+function cdRenderTagScanPanel() {
+  const st = window.__cdTagScan;
+  const $p = $('#cd-tagscan-panel');
+  if (!$p.length) return;
+  if (!st) { $p.hide().empty(); return; }
+
+  const total = st.floors.length;
+  const f = st.floors[st.idx] || {};
+  const who = f.name || (f.is_user ? 'Bạn' : 'Nhân vật');
+
+  let h = '';
+  h += '<div class="cd-tagscan-head">';
+  h += '<button type="button" class="cd-tagscan-nav" data-ts="prev"' + (st.idx <= 0 ? ' disabled' : '') + '>‹</button>';
+  h += '<span class="cd-tagscan-pos">Tầng ' + (st.idx + 1) + ' / ' + total + ' · ' + escapeHtml(who) + '</span>';
+  h += '<button type="button" class="cd-tagscan-nav" data-ts="next"' + (st.idx >= total - 1 ? ' disabled' : '') + '>›</button>';
+  h += '</div>';
+
+  if (!st.stats.length) {
+    h += '<div class="cd-tagscan-empty">Tầng này không có cặp thẻ <code>&lt;xxx&gt;…&lt;/xxx&gt;</code> nào.<br>'
+      + '<span style="opacity:.75;">Hoặc vốn không có thẻ, hoặc thẻ chưa đóng —— thẻ chưa đóng sẽ được coi là chữ thường và không liệt kê (tránh xóa nhầm nửa đoạn chính văn).</span></div>';
+    h += '<div class="cd-tagscan-actions"><button type="button" class="cd-btn-secondary" data-ts="close">Đóng</button></div>';
+    $p.html(h).show();
+    return;
+  }
+
+  h += '<div class="cd-tagscan-tip">Tích “Xóa” = xóa cả khối; tích “Giữ” = chỉ giữ khối này. '
+    + '<b>Chỉ cần có một dòng tích “Giữ”, toàn bộ chính văn bên ngoài khối thẻ sẽ bị xóa hết</b>, phần tóm tắt chỉ còn nội dung bên trong các thẻ đó. '
+    + 'Hai ô trên cùng một dòng loại trừ lẫn nhau; không tích ô nào = không đụng vào thẻ đó.</div>';
+
+  h += '<div class="cd-tagscan-list">';
+  st.stats.forEach(function (it) {
+    const act = st.acts[it.name] || '';
+    h += '<div class="cd-tagscan-row" data-tag="' + escapeAttr(it.name) + '">';
+    h += '<label class="cd-tagscan-ck cd-tagscan-ck-drop' + (act === 'drop' ? ' on' : '') + '">'
+      + '<input type="checkbox" class="cd-tagscan-act" data-tag="' + escapeAttr(it.name) + '" data-act="drop"' + (act === 'drop' ? ' checked' : '') + '> Xóa</label>';
+    h += '<label class="cd-tagscan-ck cd-tagscan-ck-keep' + (act === 'keep' ? ' on' : '') + '">'
+      + '<input type="checkbox" class="cd-tagscan-act" data-tag="' + escapeAttr(it.name) + '" data-act="keep"' + (act === 'keep' ? ' checked' : '') + '> Giữ</label>';
+    h += '<div class="cd-tagscan-body">';
+    h += '<div class="cd-tagscan-name">&lt;' + escapeHtml(it.name) + '&gt; <span class="cd-tagscan-meta">' + it.count + ' chỗ · ' + it.len + ' ký tự</span></div>';
+    h += '<div class="cd-tagscan-sample">' + escapeHtml(it.sample) + '</div>';
+    h += '</div></div>';
+  });
+  h += '</div>';
+
+  h += '<div class="cd-tagscan-actions">';
+  h += '<button type="button" class="cd-btn-primary" data-ts="apply">Áp dụng vào lọc nội dung</button>';
+  h += '<button type="button" class="cd-btn-secondary" data-ts="close">Hủy</button>';
+  h += '</div>';
+
+  $p.html(h).show();
+}
+
+/** Ghi kết quả đã tích vào thiết lập */
+function cdTagScanApply() {
+  const st = window.__cdTagScan;
+  if (!st) return;
+  const drops = [], keeps = [];
+  Object.keys(st.acts || {}).forEach(function (k) {
+    if (st.acts[k] === 'drop') drops.push(k);
+    else if (st.acts[k] === 'keep') keeps.push(k);
+  });
+  if (!drops.length && !keeps.length) {
+    if (typeof toastr !== 'undefined' && toastr.info) toastr.info('Chưa tích mục nào, không có quy tắc để áp dụng');
+    return;
+  }
+
+  const s = cdGetSettings();
+  if (keeps.length) {
+    // ★ Danh sách trắng phải ghi đè (không nối thêm), tránh tích qua lại làm danh sách ngày càng phình
+    cdSaveSettings({ filterKeepTags: keeps.slice() });
+  } else {
+    const cur = Array.isArray(s.filterTags) ? s.filterTags.slice() : [];
+    const seen = Object.create(null);
+    cur.forEach(function (p) { seen[String((p && p.start) || '').trim().toLowerCase()] = 1; });
+    drops.forEach(function (n) {
+      const start = '<' + n + '>';
+      if (seen[start]) return;
+      cur.push({ start: start, end: '</' + n + '>' });
+      seen[start] = 1;
+    });
+    // Khi chuyển sang danh sách đen thì xóa trắng danh sách trắng, nếu không whitelist cũ sẽ đè mất
+    cdSaveSettings({ filterTags: cur, filterKeepTags: [] });
+  }
+
+  if (typeof toastr !== 'undefined' && toastr.success) {
+    toastr.success(keeps.length
+      ? ('Đã bật “Chỉ giữ”: ' + keeps.join(', ') + '. Chính văn ngoài khối thẻ sẽ không gửi cho AI')
+      : ('Đã thêm vào bộ lọc: ' + drops.join(', ')));
+  }
+
+  window.__cdTagScan = null;
+  $('#cd-tagscan-panel').hide().empty();
+  // Vẽ lại trang thiết lập để hiện quy tắc mới; lùi 1 nhịp tránh tự tháo DOM trong callback
+  setTimeout(function () { try { cdRenderSettings(); } catch (e) {} }, 0);
+}
+
 async function cdRenderSettings() {
   const s = cdGetSettings();
   const panel = $('#cd-settings-panel');
@@ -15318,6 +15940,15 @@ async function cdRenderSettings() {
       '<input type="text" class="cd-input cd-filter-end" value="' + escapeAttr(pair.end || '') + '" placeholder="Thẻ đóng" style="flex:1;text-align:left;min-width:50px;">' +
       '<button class="cd-btn-danger cd-filter-del" style="padding:2px 8px;min-width:auto;">×</button></div>';
   }).join('');
+
+  // ★ FIX35: thanh trạng thái danh sách trắng (Chỉ giữ) —— đã bật là phải luôn hiển thị rõ ràng
+  var _keepTagsNow = Array.isArray(s.filterKeepTags) ? s.filterKeepTags : [];
+  var _keepBar = _keepTagsNow.length
+    ? ('<div class="cd-tagscan-keepbar"><i class="fa-solid fa-circle-exclamation"></i> <b>Đã bật chế độ Chỉ giữ</b>: chỉ gửi các khối thẻ ' +
+        _keepTagsNow.map(function (t) { return '&lt;' + escapeHtml(t) + '&gt;'; }).join(', ') +
+        ', <b>chính văn bên ngoài khối thẻ sẽ không gửi cho AI</b>.' +
+        '<button type="button" class="cd-btn-secondary" id="cd-filter-keep-clear" style="margin-left:8px;font-size:calc(0.58rem * var(--cd-fs,1));min-width:auto;padding:2px 9px;">Xóa bỏ</button></div>')
+    : '';
 
   // API đã cấu hình hay chưa (★ FIX10: trước đây tính xong mà không dùng, giờ thật sự dùng —— chưa cấu hình thì ở phía trên đưa ra một dòng hướng dẫn)
   const _hasApi = !!((s.endpoints && (s.endpoints.openai?.url || s.endpoints.claude?.url || s.endpoints.gemini?.url)) || !s.source || s.source === 'tavern');
@@ -15438,6 +16069,12 @@ async function cdRenderSettings() {
 
       <details class="cds-collapse" open data-cds="filter"><summary><i class="fa-regular fa-filter"></i> Lọc nội dung</summary>
         <div>
+          <div class="cd-tagscan-bar">
+            <button class="cd-btn-secondary" id="cd-tagscan-open" style="font-size: calc(0.62rem * var(--cd-fs, 1));min-width:auto;"><i class="fa-solid fa-magnifying-glass" style="margin-right:4px;"></i>Quét thẻ tầng hiện tại</button>
+            <span class="cd-tagscan-barhint">Tự liệt kê các thẻ &lt;xxx&gt; trong chính văn, tích chọn để tạo quy tắc ngay, không cần gõ tay</span>
+          </div>
+          <div id="cd-tagscan-panel" style="display:none;"></div>
+          ${_keepBar}
           <div id="cd-filter-tags-container">${_filterRows}</div>
           <button class="cd-btn-secondary" id="cd-filter-add" style="margin-top:4px;font-size: calc(0.62rem * var(--cd-fs, 1));min-width:auto;">+ Thêm một cặp</button>
         </div>
@@ -15563,6 +16200,44 @@ async function cdRenderSettings() {
     cdSaveSettings({ themeMode: v });
     cdApplyTheme(getEffectiveTheme());
     if (typeof toastr !== 'undefined') toastr.info('Chủ đề panel: ' + (v === 'auto' ? 'Theo Tavern' : cdThemeName(getEffectiveTheme())));
+  });
+
+  // ★ FIX35 quét thẻ: off('.tagscan') một lần rồi gắn liên tiếp on
+  $(document).off('.tagscan');
+  $(document).on('click.tagscan', '#cd-tagscan-open', function () {
+    cdTagScanStart();
+  }).on('click.tagscan', '#cd-tagscan-panel [data-ts]', function () {
+    const act = String($(this).attr('data-ts') || '');
+    if (act === 'prev' || act === 'next') {
+      const st = window.__cdTagScan; if (!st) return;
+      const next = st.idx + (act === 'prev' ? -1 : 1);
+      if (next < 0 || next >= st.floors.length) return;
+      st.idx = next; cdTagScanLoad();
+    } else if (act === 'apply') {
+      cdTagScanApply();
+    } else if (act === 'close') {
+      window.__cdTagScan = null;
+      $('#cd-tagscan-panel').hide().empty();
+    }
+  }).on('change.tagscan', '.cd-tagscan-act', function () {
+    const st = window.__cdTagScan; if (!st) return;
+    const tag = String($(this).attr('data-tag') || '');
+    const act = String($(this).attr('data-act') || '');
+    if (!tag) return;
+    const $row = $(this).closest('.cd-tagscan-row');
+    if ($(this).prop('checked')) {
+      st.acts[tag] = act;
+      // Loại trừ lẫn nhau trên cùng một dòng: tự bỏ tích ô kia
+      $row.find('.cd-tagscan-act').not(this).prop('checked', false);
+    } else if (st.acts[tag] === act) {
+      delete st.acts[tag];
+    }
+    $row.find('.cd-tagscan-ck').removeClass('on');
+    $row.find('.cd-tagscan-act:checked').closest('.cd-tagscan-ck').addClass('on');
+  }).on('click.tagscan', '#cd-filter-keep-clear', function () {
+    cdSaveSettings({ filterKeepTags: [] });
+    if (typeof toastr !== 'undefined' && toastr.success) toastr.success('Đã xóa danh sách trắng “Chỉ giữ”');
+    setTimeout(function () { try { cdRenderSettings(); } catch (e) {} }, 0);
   });
 
   // Ghi nhận nguồn đang chỉnh sửa (★ FIX10: cùng cách tính với ô nhập, theo nguồn đang chọn, không còn ưu tiên openai)
@@ -16249,6 +16924,35 @@ ${diaryNames.map(n => `<label style="font-size: calc(0.65rem * var(--cd-fs, 1));
 
 /* ============================== Nhật ký cập nhật phiên bản ============================== */
 const CHANGELOG = [
+  {
+    version: 'v2.22.2',
+    date: '2026-11-13',
+    items: [
+      '【Sửa lỗi & bổ sung giải thích thiết lập】Khắc phục triệt để lỗi nút “?” trong bảng thiết lập mở ra cùng một nội dung (closure chia sẻ biến var) và bổ sung giải thích chi tiết cho 17 mục cài đặt còn thiếu (ảnh nhân vật, giao diện, âm báo, bắt nhân vật xuất hiện, nguồn dữ liệu tóm tắt, lọc chuỗi suy nghĩ...).',
+      '【Hoàn thiện chế độ Chỉ giữ (v2.22.1)】Bỏ qua hoàn toàn các tầng tin nhắn bị rỗng sau khi lọc whitelist (không tạo dòng trống kiểu “[#12 Tên]” tốn token); đồng thời áp dụng bộ lọc whitelist cho cả phần bắt nhân vật xuất hiện và từ khóa truy xuất vector.',
+    ],
+  },
+  {
+    version: 'v2.22.0',
+    date: '2026-11-13',
+    items: [
+      '【Mới: Quét thẻ tầng hiện tại】Trong Thiết lập → Nâng cao → Lọc nội dung có thêm nút “Quét thẻ tầng hiện tại”. Bấm vào sẽ tự liệt kê các cặp thẻ &lt;xxx&gt;…&lt;/xxx&gt; trong chính văn tầng đó (số lần, độ dài, đoạn mẫu), mặc định tầng mới nhất và lật lên/xuống được bằng ‹ ›. Tích “Xóa” hoặc “Giữ” rồi bấm “Áp dụng vào lọc nội dung” để lưu ngay quy tắc, không cần gõ tay.',
+      '【Mới: Chế độ Chỉ giữ (Whitelist)】Chỉ cần có một dòng tích “Giữ”, bộ lọc sẽ chạy theo chế độ danh sách trắng: chỉ giữ lại các khối thẻ đã chọn, <b>bỏ hết phần chính văn ngoài khối thẻ</b>. Trang thiết lập luôn hiện thanh nhắc màu vàng khi chế độ này đang bật.',
+      '【Sửa lỗi lọc thẻ có thuộc tính】Trước đây tìm chuỗi cố định &lt;status&gt; nên gặp &lt;status class="x"&gt; không lọc được. Nay đổi sang ghép cặp bằng stack, nhận cả thẻ có thuộc tính lẫn tên thẻ Unicode.',
+      '【Sửa lỗi chế độ gộp không lọc nội dung】Khi bật tóm tắt gộp (nhật ký + quan hệ + hồ sơ trong một lượt), cả 5 luồng chính văn (nhật ký / gộp / hồ sơ cốt truyện / truy xuất vector / quan hệ) nay đều đi qua chung một lối lọc.',
+      '【Mới: Sao chép nhanh hồ sơ cốt truyện】Trong mục “Sửa nguyên văn hồ sơ cốt truyện” có thêm nút “Sao chép” ở từng đoạn và nút “Sao chép toàn bộ hồ sơ” ở cuối, hỗ trợ hạ cấp tự động trên mạng LAN http://.',
+    ],
+  },
+  {
+    version: 'v2.21.0',
+    date: '2026-11-13',
+    items: [
+      '【Nén hồ sơ cốt truyện: nén thực sự】Bỏ các câu ràng buộc cũ kiểu “không được xóa việc nào / giữ 1/2~2/3”, đổi sang “chỉ giữ các sự kiện thúc đẩy cốt truyện” kèm danh sách loại bỏ rõ ràng (chào hỏi xã giao, sinh hoạt vụn vặt, không khí môi trường, chuyển tiếp, tương tác người qua đường), cho phép nén xuống 1/3 hoặc ngắn hơn.',
+      '【Sửa lỗi “nén mãi không giảm”】Trước đây khi điền lại chỉ thay các trường có độ dài &gt; 0 nên đoạn bị AI nén thành rỗng vẫn giữ nguyên nội dung cũ. Nay phân biệt rõ: AI xuất đoạn rỗng = xóa thật; không xuất tiêu đề = giữ nguyên. Thêm chốt an toàn: nếu AI xóa sạch cả 4 trường chính thì báo lỗi và giữ nguyên hồ sơ gốc.',
+      '【Mới: Trang chỉnh sửa Prompt】Ô công cụ thứ 11 “Prompt” ở trang chủ, cho phép tùy chỉnh 3 loại prompt (Tóm tắt/Nhật ký, Hồ sơ cốt truyện, Nén hồ sơ) theo 2 cách: ① Thêm yêu cầu vào cuối bản gốc (an toàn định dạng) ② Tiếp quản toàn bộ (nâng cao). Có nút xem/tải/khôi phục mặc định.',
+      '【Tối ưu nhỏ】Khi nén thất bại sẽ báo rõ nguyên nhân (AI trả rỗng / không phân tích được tiêu đề / xóa sạch mọi trường) thay vì báo thành công giả.',
+    ],
+  },
     {
     version: 'v2.20.0',
     date: '2026-11-10',
