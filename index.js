@@ -481,6 +481,7 @@ const DEFAULT_SETTINGS = {
   maxWindowFloors : 40,           // Số tầng tối đa xem lại trong một lần
   temperature     : 0.7,          // Nhiệt độ (temperature) API khi viết nhật ký
   maxTokens       : 0,            // Giới hạn max_tokens đầu ra (0 = Tự động: Gemini 2.5+/3.x 65536, model suy nghĩ khác 32768, model thường 8192; hoặc nhập thủ công)
+  requestTimeout  : 600,          // Thời gian chờ tối đa mỗi lượt gọi API (giây, mặc định 600s = 10 phút cho model suy nghĩ)
   mainCardIsGM    : true,         // Thẻ chính là người dẫn truyện GM, không viết nhật ký cho nó (mặc định bật)
   source          : 'tavern',     // 'tavern' | 'openai' | 'claude' | 'gemini'
   fabShow         : true,         // Có hiển thị nút nổi hay không
@@ -7189,10 +7190,20 @@ function cdBusyToast() {
   const pend = secs ? ' (đã chạy ' + secs + ' giây)' : '';
   toastr.info('Đang chạy ' + what + ', vui lòng chờ' + pend);
 }
+/** Lấy thời gian chờ tối đa (ms) cho mỗi lượt gọi API (mặc định 600s = 10 phút cho model suy nghĩ) */
+function cdResolveTimeoutMs(s) {
+  try {
+    const cfg = s || (typeof cdGetSettings === 'function' ? cdGetSettings() : null);
+    const sec = Number(cfg && cfg.requestTimeout);
+    if (Number.isFinite(sec) && sec >= 30) return Math.min(3600, Math.floor(sec)) * 1000;
+  } catch (_e) {}
+  return 600000;
+}
 /** Bọc timeout chung: tránh một đường request API treo vĩnh viễn làm cả tác vụ (và khóa cdBusy) bị kẹt */
 function cdWithTimeout(promise, ms, label) {
+  const _ms = (!ms || ms <= 180000) ? cdResolveTimeoutMs() : ms;
   return new Promise((resolve, reject) => {
-    const t = setTimeout(() => reject(new Error((label ? label + ' ' : '') + 'Request hết thời gian (' + ms + 'ms)')), ms);
+    const t = setTimeout(() => reject(new Error((label ? label + ' ' : '') + 'Request hết thời gian (' + _ms + 'ms)')), _ms);
     Promise.resolve(promise).then(
       (v) => { clearTimeout(t); resolve(v); },
       (e) => { clearTimeout(t); reject(e); }
@@ -7433,7 +7444,8 @@ async function cdRunDiary({ manual = false, silent = false, extraFloors = null }
     //   Hết thời gian không còn vứt bỏ, đổi thành tiếp tục chờ kết quả thật; bản thân mỗi lớp gọi đã có bảo vệ timeout 120s.
     const _maxRetryCfg = Math.max(0, parseInt(s.retryTimes, 10) || 0);
     const _retryDelayCfg = Math.max(0, parseFloat(s.retryDelay) || 0) * 1000;
-    const _budgetMs = Math.max(300000, (_maxRetryCfg + 1) * 120000 + _retryDelayCfg * _maxRetryCfg + 15000);
+    const _oneTimeoutMs = cdResolveTimeoutMs(s);
+    const _budgetMs = Math.max(300000, (_maxRetryCfg + 1) * _oneTimeoutMs + _retryDelayCfg * _maxRetryCfg + 15000);
     let _raceT = null;
     const _raceTimer = new Promise(r => { _raceT = setTimeout(() => r(null), _budgetMs); });
     let results = await Promise.race([_cdRunAll, _raceTimer]);
@@ -11414,6 +11426,8 @@ const CD_SETTING_HELP = {
   'cd-s-maxtokens': ['Giới hạn token đầu ra tối đa (max_tokens / maxOutputTokens) cho API kết nối trực tiếp.',
                      'Để 0 = Tự động (Gemini 2.5+/3.x tự dùng 65536, model suy nghĩ khác 32768, model thường 8192).',
                      'Model suy nghĩ tính cả token suy nghĩ vào giới hạn này; nếu chạm giới hạn trước khi có nội dung, hãy để 0 hoặc đặt 32768~65536.'],
+  'cd-s-timeout': ['Thời gian chờ tối đa cho mỗi lượt gọi API (tính bằng giây, mặc định 600 giây = 10 phút).',
+                   'Model suy nghĩ hoặc prompt dài thường mất 3~5 phút mới trả về; đặt quá thấp sẽ bị cắt ngang sớm và retry tốn token oan.'],
   'cd-s-diary': ['Tắt rồi thì không sinh nhật ký nhân vật mới nữa.',
                  'Nhật ký đã viết vẫn còn, vẫn xem được, chỉ là không thêm nữa.'],
   'cd-s-archive': ['Tắt rồi thì không sinh hồ sơ cốt truyện nữa, cũng không chèn cho AI nữa.',
@@ -16018,6 +16032,7 @@ async function cdRenderSettings() {
       <div class="cds-row"><span class="cds-lab">Chuyển chính thức nhân vật tạm <span class="cds-hint">xuất hiện N lần</span></span><span class="cds-ctrl"><input type="number" id="cd-s-cameo" value="${s.cameoThreshold}" min="1" max="50" class="cd-input"></span></div>
       <div class="cds-row"><span class="cds-lab">Nhiệt độ tạo</span><span class="cds-ctrl"><input type="number" id="cd-s-temp" value="${s.temperature}" step="0.1" min="0" max="2" class="cd-input"></span></div>
       <div class="cds-row"><span class="cds-lab">Giới hạn token đầu ra <span class="cds-hint">0 = tự động (Gemini suy nghĩ 65536)</span></span><span class="cds-ctrl"><input type="number" id="cd-s-maxtokens" value="${s.maxTokens || 0}" step="1024" min="0" max="131072" class="cd-input" style="width:76px;"></span></div>
+      <div class="cds-row"><span class="cds-lab">Thời gian chờ tối đa <span class="cds-hint">mỗi lượt gọi API (mặc định 600 giây)</span></span><span class="cds-ctrl"><input type="number" id="cd-s-timeout" value="${s.requestTimeout !== undefined ? s.requestTimeout : 600}" step="30" min="30" max="3600" class="cd-input" style="width:66px;"><span class="cds-hint">giây</span></span></div>
       <div class="cds-row"><span class="cds-lab">Tự động thử lại <span class="cds-hint">thử lại khi thất bại</span></span><span class="cds-ctrl"><input type="number" id="cd-s-retry" value="${s.retryTimes !== undefined ? s.retryTimes : 3}" min="0" max="10" class="cd-input" style="width:46px;"><span class="cds-hint">lần</span><input type="number" id="cd-s-retrydelay" value="${s.retryDelay !== undefined ? s.retryDelay : 2}" min="0" max="30" step="1" class="cd-input" style="width:46px;"><span class="cds-hint">giây</span></span></div>
     </div>
 
@@ -16549,6 +16564,7 @@ async function cdRenderSettings() {
       cameoThreshold: parseInt($('#cd-s-cameo').val(), 10) || 3,
       temperature: (function () { var _v = parseFloat($('#cd-s-temp').val()); return Number.isFinite(_v) ? Math.min(2, Math.max(0, _v)) : 0.7; })(),
       maxTokens: (function () { var _v = parseInt($('#cd-s-maxtokens').val(), 10); return (Number.isFinite(_v) && _v >= 256) ? Math.min(131072, _v) : 0; })(),
+      requestTimeout: (function () { var _v = parseInt($('#cd-s-timeout').val(), 10); return (Number.isFinite(_v) && _v >= 30) ? Math.min(3600, _v) : 600; })(),
       retryTimes: Math.max(0, parseInt($('#cd-s-retry').val(), 10) || 0),
       retryDelay: Math.max(0, parseFloat($('#cd-s-retrydelay').val()) || 0),
       injectPosition: $('#cd-s-injpos').val() || 'after',
