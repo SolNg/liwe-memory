@@ -19899,6 +19899,7 @@ async function cdDiagCast(){
 const CD_FORUM_CSS = `/* ===== Tông nền: trắng ngà xanh than (ngày) / xanh than nửa đêm (đêm) · Đầy đủ chức năng · Chỉ đổi phối màu ===== */
   /* ---- Nơi chứa biến: ban ngày = trắng ngà xanh than (mặc định), .cd-forum-night ghi đè thành xanh than nửa đêm ---- */
   #cd-forum-overlay{
+    font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,'Noto Sans',system-ui,sans-serif;
     --c-bg:#ecebe6; --c-panel:#f6f5f1; --c-frame:#ecebe6; --c-card:#fbfaf7;
     --c-head:#eeede7; --c-sub:#e7e4da; --c-line:#e0ded6; --c-line2:#cbc8bd; --c-hover:#e9e6de;
     --c-txt:#26292e; --c-txt2:#4d5057; --c-txt3:#8b8e95; --c-input:#fbfaf7;
@@ -20061,7 +20062,7 @@ const CD_FORUM_CSS = `/* ===== Tông nền: trắng ngà xanh than (ngày) / xan
   /* Các tầng chi tiết bài viết */
   #cd-forum-overlay .floor{border:1px solid var(--c-line);border-radius:9px;padding:9px 11px;margin-bottom:6px;background:var(--c-card);}
   #cd-forum-overlay .floor .f-top{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
-  #cd-forum-overlay .floor .fa{font-size:10px;font-weight:700;color:var(--c-txt);cursor:pointer;}
+  #cd-forum-overlay .floor .fa{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,'Noto Sans',system-ui,sans-serif !important;font-style:normal !important;font-variant:normal !important;text-transform:none !important;letter-spacing:normal !important;font-size:11px;font-weight:700;color:var(--c-txt);cursor:pointer;}
   #cd-forum-overlay .floor .fw{font-size:8px;color:var(--c-txt3);background:var(--c-tag-bg);border-radius:6px;padding:0 6px;}
   #cd-forum-overlay .floor .fno{margin-left:auto;font-size:8.5px;color:var(--c-txt3);}
   #cd-forum-overlay .floor .ft{font-size:10.5px;color:var(--c-txt2);line-height:1.7;}
@@ -20578,7 +20579,7 @@ const CD_FORUM_HTML = `<div id="cdForumRoot">
         <div class="set-row"><input class="set-in" id="cfApiUrl" placeholder="Địa chỉ API (để trống=dùng lại plugin chính)" value=""></div>
         <div class="set-row"><input class="set-in" id="cfApiKey" placeholder="API Key" type="password" value=""></div>
         <div class="set-row" style="align-items:center;">Mô hình <select class="set-in" id="cfApiModel" style="width:190px;"></select><button class="set-btn" id="cfApiModelFetch" style="margin-left:6px;">Lấy</button></div>
-        <div style="font-size:9px;color:var(--c-txt3,#8b9298);line-height:1.6;margin-top:3px;padding:0 2px;">⚠ Lưu ý nhận diện ảnh: chỉ có<b>mô hình đa phương thức</b>mới thực sự"hiểu/nhận diện ảnh"và mô tả bằng chữ; mô hình chỉ văn bản thông thường không đọc được ảnh. Khi bật"bài đăng kèm ảnh thật/nhận diện ảnh"thì cần dùng mô hình hỗ trợ đa phương thức.</div>
+        <div style="font-size:9px;color:var(--c-txt3,#8b9298);line-height:1.6;margin-top:3px;padding:0 2px;">⚠ Lưu ý nhận diện ảnh: chỉ có <b>mô hình đa phương thức</b> mới thực sự “hiểu/nhận diện ảnh” và mô tả bằng chữ; mô hình chỉ văn bản thông thường không đọc được ảnh. Khi bật “bài đăng kèm ảnh thật/nhận diện ảnh” thì cần dùng mô hình hỗ trợ đa phương thức.</div>
         <div class="set-row" style="justify-content:flex-end;"><button class="set-btn" id="cfApiSave">Lưu API</button></div>
       </div>
       <!-- Thẻ tạo ảnh -->
@@ -21220,10 +21221,13 @@ function cdForumPersist(){
     localStorage.setItem('cd-forum-data', JSON.stringify(d));
     // Lưu bền cài đặt diễn đàn (số trả lời/khoảng tự động/prompt/chế độ)
     try{ if(_cfCfgCache) localStorage.setItem('cd-forum-cfg', JSON.stringify(_cfCfgCache)); }catch(e3){}
-    // Đồng bộ một bản vào settings (để kênh cũ/chẩn đoán thấy được)
+    // Đồng bộ một bản vào settings (để kênh cũ/chẩn đoán và API diễn đàn thấy được)
     try{
       var s = cdGetSettings();
-      if(s.forum){ s.forum.worlds = d.worlds; s.forum.posts = d.posts; s.forum.title = d.title; var ctx=SillyTavern.getContext();
+      if(s.forum){
+        s.forum.worlds = d.worlds; s.forum.posts = d.posts; s.forum.title = d.title;
+        if(_cfCfgCache && _cfCfgCache.api) s.forum.api = Object.assign({}, _cfCfgCache.api);
+        var ctx=SillyTavern.getContext();
         if(ctx&&typeof ctx.saveSettingsDebounced==='function') ctx.saveSettingsDebounced(); else if(typeof saveSettingsDebounced==='function') saveSettingsDebounced();
       }
     }catch(e2){}
@@ -21364,19 +21368,31 @@ function cdForumCheckAt(posts){
 }
 
 /* ---------- Gọi LLM riêng cho diễn đàn (dùng lại cdApiComplete) ---------- */
+function cdGetForumApiCfg(s){
+  var cfgApi = null;
+  try {
+    var c = (typeof cdForumCfg === 'function') ? cdForumCfg() : null;
+    if (c && c.api && (c.api.url || c.api.key || c.api.model)) cfgApi = c.api;
+  } catch (_e) {}
+  var setApi = (s && s.forum && s.forum.api) ? s.forum.api : {};
+  return Object.assign({}, setApi, cfgApi || {});
+}
 async function cdForumApiComplete(messages){
   var s = cdGetSettings();
-  var fa = (s.forum && s.forum.api) ? s.forum.api : {};
-  // Dựng một settings tạm trỏ tới forum.api (nếu đã cấu hình url), nếu không thì dùng plugin chính
+  var fa = cdGetForumApiCfg(s);
+  // Dựng một settings tạm trỏ tới API diễn đàn (nếu đã cấu hình url), nếu không thì dùng plugin chính
   var tmp = Object.assign({}, s);
-  if(fa.url && fa.key){
+  if(fa.url && (fa.key || fa.model)){
     var _fsrc = fa.source || 'auto';
     if(_fsrc==='gemini'){
       tmp.source='gemini';
-      tmp.endpoints = Object.assign({}, s.endpoints, { gemini: { url: fa.url, key: fa.key, model: fa.model || s.endpoints?.gemini?.model || '' } });
+      tmp.endpoints = Object.assign({}, s.endpoints, { gemini: { url: fa.url, key: fa.key || '', model: fa.model || s.endpoints?.gemini?.model || '' } });
+    } else if(_fsrc==='claude'){
+      tmp.source='claude';
+      tmp.endpoints = Object.assign({}, s.endpoints, { claude: { url: fa.url, key: fa.key || '', model: fa.model || s.endpoints?.claude?.model || '' } });
     } else {
       tmp.source = 'openai';
-      tmp.endpoints = Object.assign({}, s.endpoints, { openai: { url: fa.url, key: fa.key, model: fa.model || s.endpoints?.openai?.model || '' } });
+      tmp.endpoints = Object.assign({}, s.endpoints, { openai: { url: fa.url, key: fa.key || '', model: fa.model || s.endpoints?.openai?.model || '' } });
     }
     tmp.temperature = (typeof fa.temperature==='number') ? fa.temperature : (s.temperature||0.7);
   }
@@ -21634,8 +21650,8 @@ function cdForumExtractJSON(text){
 /* ---------- Công cụ: từ settings xác định API diễn đàn đã sẵn sàng chưa ---------- */
 function cdForumApiReady(){
   var s = cdGetSettings();
-  var fa = (s.forum && s.forum.api) ? s.forum.api : {};
-  if(fa.url && fa.key) return true;
+  var fa = cdGetForumApiCfg(s);
+  if(fa.url && (fa.key || fa.model)) return true;
   // Plugin chính có endpoint openai cũng tính là dùng được
   if(s.endpoints && (s.endpoints.openai?.url || s.endpoints.claude?.url || s.endpoints.gemini?.url || s.source==='tavern')) return true;
   return false;
