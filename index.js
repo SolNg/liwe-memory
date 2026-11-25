@@ -1142,6 +1142,22 @@ async function callOpenAI(messages, ep, s) {
   }
 }
 
+/** Làm sạch và cắt ngắn văn bản trước khi gửi Rerank / Vector (loại bỏ ảnh base64, thẻ suy luận, tránh vượt trần token) */
+function cdSanitizeRerankText(text, maxChars, fromTail) {
+  let t = String(text == null ? '' : text);
+  if (!t) return '';
+  // Loại bỏ ảnh nhúng dạng [IMG]data:image/...[/IMG] và chuỗi base64 data:image
+  t = t.replace(/\[IMG\]data:image\/[^\[\]]+\[\/IMG\]/gi, ' ');
+  t = t.replace(/data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=\s]+/gi, ' ');
+  // Loại bỏ khối suy luận thường gặp nếu còn sót
+  t = t.replace(/<\s*(think|thinking|reasoning|thought)\b[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, ' ');
+  t = t.replace(/\s+/g, ' ').trim();
+  if (maxChars && t.length > maxChars) {
+    t = fromTail ? t.slice(-maxChars) : t.slice(0, maxChars);
+  }
+  return t;
+}
+
 /**
  * Rerank xếp hạng lại (tương thích OpenAI /rerank, đường lui /v1/rerank)
  * @param {string} query văn bản truy vấn
@@ -1155,7 +1171,18 @@ async function cdRerank(query, documents, cfg) {
   const key = cfg.key || '';
   const model = cfg.model || '';
   if (!rawBase || !model) throw new Error('Rerank chưa cấu hình base/model');
-  const body = { model, query, documents };
+  // Cắt ngắn query (lấy phần cuối mới nhất, tối đa 2500 ký tự) và từng document (tối đa 2000 ký tự, tổng trần 24000 ký tự)
+  // để không bao giờ vượt giới hạn context 32768 token của model rerank.
+  const safeQuery = cdSanitizeRerankText(query, 2500, true);
+  if (!safeQuery) return [];
+  const MAX_TOTAL_CHARS = 24000;
+  let remain = Math.max(2000, MAX_TOTAL_CHARS - safeQuery.length);
+  const perDocCap = Math.min(2000, Math.max(200, Math.floor(remain / Math.max(1, documents.length))));
+  const safeDocs = documents.map(function (d) {
+    const clean = cdSanitizeRerankText(d, perDocCap, false);
+    return clean || ' ';
+  });
+  const body = { model, query: safeQuery, documents: safeDocs };
   const headers = { 'Content-Type': 'application/json' };
   if (key) headers.Authorization = `Bearer ${key}`;
   // base có thể có /v1 hoặc không, sinh các tổ hợp endpoint ứng viên: base/v1 có hay không + hậu tố /rerank /v1/rerank
@@ -8086,20 +8113,14 @@ async function cdOnMessageReceivedJsonl() {
     return;
   }
   // Độ lệch mốc + chia lô (giống đường chat)
-  // ★ [Sửa Bug2] Ở ranh giới thật sự bỏ qua offset tin mới nhất: khi vùng ổn định (stable=totalNew-offset) chưa đủ một lô nhưng tổng số mới đã đủ một lô,
-  //   chỉ đẩy “toàn bộ vùng ổn định”, tuyệt đối không cố lấy đủ interval tin mà ghi cả offset tầng mới nhất chưa ổn định vào ký ức.
+  // ★ Chỉ kích hoạt khi vùng ổn định (stable = totalNew - offset) đã gom đủ một lô >= interval,
+  //   tránh lỗi trước đây khi totalNew >= interval nhưng stable = interval - offset (vd chỉnh 6, offset 2 → cứ 4 tầng lại chạy).
   const stable = Math.max(0, totalNew - offset);
-  let takeCount = Math.floor(stable / interval) * interval;
-  if (takeCount < interval) {
-    if (stable >= interval) {
-      takeCount = Math.floor(stable / interval) * interval;   // Vùng ổn định gom đủ một lô → theo cả lô
-    } else if (totalNew >= interval) {
-      takeCount = stable;                                     // Vùng ổn định chưa đủ một lô → chỉ lấy toàn bộ vùng ổn định (bỏ qua offset tin mới nhất), chống treo
-    } else {
-      if (typeof cdAddLog === 'function') cdAddLog('info', 'Tự động tóm tắt [jsonl]', { 'Không kích hoạt': 'Tầng AI mới chưa đủ một lô', 'Thêm mới': totalNew, 'Khoảng cách': interval, 'Độ lệch': offset, 'Mốc': baseline });
-      return;
-    }
+  if (stable < interval) {
+    if (typeof cdAddLog === 'function') cdAddLog('info', 'Tự động tóm tắt [jsonl]', { 'Không kích hoạt': 'Vùng ổn định chưa đủ một lô', 'Thêm mới': totalNew, 'Vùng ổn định': stable, 'Khoảng cách': interval, 'Độ lệch': offset, 'Mốc': baseline });
+    return;
   }
+  let takeCount = Math.floor(stable / interval) * interval;
   // Giới hạn kích thước lô tối đa, tránh nổ token (xử lý một lần vài trăm tầng sẽ vượt ngân sách)
   const maxW = Math.max(1, parseInt(s.maxWindowFloors, 10) || 40);
   if (takeCount > maxW) takeCount = maxW;
@@ -8282,35 +8303,26 @@ async function cdOnMessageReceived() {
     }
   }
 
-  // ★ Độ lệch mốc: lượt này không ghi ngay offset tin mới nhất (để lượt sau khi chúng ổn định),
-  //   nhưng việc xác định kích hoạt dùng toàn bộ lượng mới thêm, tránh trường hợp “mỗi lượt thêm < offset” thì không bao giờ kích hoạt.
-  // ★ [Sửa Bug2] Ở ranh giới thật sự bỏ qua offset tin mới nhất: khi vùng ổn định (stable=totalNew-offset) chưa đủ một lô nhưng tổng số mới đã đủ một lô,
-  //   chỉ đẩy “toàn bộ vùng ổn định”, tuyệt đối không cố lấy đủ interval tin mà ghi cả offset tầng mới nhất chưa ổn định vào ký ức.
+  // ★ Độ lệch mốc: chỉ kích hoạt khi vùng ổn định (stable = totalNew - offset) đã gom đủ ít nhất interval tầng.
+  //   Trước đây nhánh `else if (totalNew >= interval)` lấy `takeCount = stable = interval - offset`,
+  //   khiến chỉnh 6 tầng + độ lệch 2 bị chạy đều đặn mỗi 4 tầng (6 - 2 = 4) thay vì 6 tầng.
   const totalNew = aiFloors.length;
   const stable = Math.max(0, totalNew - offset);
-  let takeCount = Math.floor(stable / interval) * interval;
-  if (takeCount < interval) {
-    if (stable >= interval) {
-      takeCount = Math.floor(stable / interval) * interval;   // Vùng ổn định gom đủ một lô → theo cả lô
-    } else if (totalNew >= interval) {
-      // Chống treo: khi vùng ổn định chưa đủ một lô nhưng toàn bộ lượng mới đã đủ một lô, chỉ đẩy “toàn bộ vùng ổn định” (= bỏ qua offset tin mới nhất, vốn đã ổn định từ lâu),
-      //         không lấy đủ interval tin mà ghi cả offset tầng mới nhất chưa ổn định vào ký ức
-      takeCount = stable;
-    } else {
-      // ★ Quét cấu trúc chat, định vị “tầng AI ở đâu, vì sao lượng mới không đủ”
-      try {
-        const _scan = [];
-        for (let _i = 0; _i < currentLen; _i++) {
-          const _m = chat[_i];
-          _scan.push({ i: _i, user: !!(_m && _m.is_user), sys: !!(_m && _m.is_system), ai: !!(_m && !_m.is_user && !_m.is_system), name: (_m && _m.name) || '', type: (_m && (_m.role || (_m.is_user ? 'user' : _m.is_system ? 'system' : 'AI'))) });
-        }
-        const _aiIdx = _scan.filter(x => x.ai).map(x => x.i);
-        cdAddLog('info', '[Quét cấu trúc chat] Mọi chỉ số AI=' + JSON.stringify(_aiIdx), {'Tổng': currentLen, lastFloor: baseline, 'Tổng số AI': _aiIdx.length, 'AI sau lastFloor': _aiIdx.filter(i => i > baseline)});
-      } catch (_e) {}
-      cdAddLog('info', 'Tự động tóm tắt', {'Lý do không kích hoạt':'Tầng AI mới chưa đủ một lô', 'AI mới thêm': totalNew, 'Khoảng cách': interval, 'Độ lệch mốc neo': offset, 'Mốc': baseline, 'Số cuộc trò chuyện': currentLen});
-      return;
-    }
+  if (stable < interval) {
+    // ★ Quét cấu trúc chat, định vị “tầng AI ở đâu, vì sao lượng mới không đủ”
+    try {
+      const _scan = [];
+      for (let _i = 0; _i < currentLen; _i++) {
+        const _m = chat[_i];
+        _scan.push({ i: _i, user: !!(_m && _m.is_user), sys: !!(_m && _m.is_system), ai: !!(_m && !_m.is_user && !_m.is_system), name: (_m && _m.name) || '', type: (_m && (_m.role || (_m.is_user ? 'user' : _m.is_system ? 'system' : 'AI'))) });
+      }
+      const _aiIdx = _scan.filter(x => x.ai).map(x => x.i);
+      cdAddLog('info', '[Quét cấu trúc chat] Mọi chỉ số AI=' + JSON.stringify(_aiIdx), {'Tổng': currentLen, lastFloor: baseline, 'Tổng số AI': _aiIdx.length, 'AI sau lastFloor': _aiIdx.filter(i => i > baseline)});
+    } catch (_e) {}
+    cdAddLog('info', 'Tự động tóm tắt', {'Lý do không kích hoạt':'Vùng ổn định chưa đủ một lô', 'AI mới thêm': totalNew, 'Vùng ổn định': stable, 'Khoảng cách': interval, 'Độ lệch mốc neo': offset, 'Mốc': baseline, 'Số cuộc trò chuyện': currentLen});
+    return;
   }
+  let takeCount = Math.floor(stable / interval) * interval;
 
   let windowFloors = aiFloors.slice(0, takeCount);
   /* ★ FIX16: ở đây không tự cắt đuôi nữa. Trước đây slice(-N) bỏ thẳng các tầng sớm hơn,
@@ -21385,32 +21397,46 @@ function cdForumCheckAt(posts){
 
 /* ---------- Gọi LLM riêng cho diễn đàn (dùng lại cdApiComplete) ---------- */
 function cdGetForumApiCfg(s){
-  var cfgApi = null;
+  var out = {};
+  var setApi = (s && s.forum && s.forum.api) ? s.forum.api : {};
+  ['source', 'url', 'key', 'model', 'temperature'].forEach(function(k){
+    if (setApi[k] !== undefined && setApi[k] !== '') out[k] = setApi[k];
+  });
   try {
     var c = (typeof cdForumCfg === 'function') ? cdForumCfg() : null;
-    if (c && c.api && (c.api.url || c.api.key || c.api.model)) cfgApi = c.api;
+    if (c && c.api) {
+      ['source', 'url', 'key', 'model', 'temperature'].forEach(function(k){
+        if (c.api[k] !== undefined && c.api[k] !== '') out[k] = c.api[k];
+      });
+    }
   } catch (_e) {}
-  var setApi = (s && s.forum && s.forum.api) ? s.forum.api : {};
-  return Object.assign({}, setApi, cfgApi || {});
+  return out;
 }
-async function cdForumApiComplete(messages){
+async function cdForumApiComplete(messages, optTemp){
   var s = cdGetSettings();
   var fa = cdGetForumApiCfg(s);
-  // Dựng một settings tạm trỏ tới API diễn đàn (nếu đã cấu hình url), nếu không thì dùng plugin chính
+  // Dựng một settings tạm trỏ tới API diễn đàn (nếu đã cấu hình url hoặc model riêng), nếu không thì dùng plugin chính
   var tmp = Object.assign({}, s);
-  if(fa.url && (fa.key || fa.model)){
+  var useForumApi = !!(fa.url || fa.model);
+  if(useForumApi){
     var _fsrc = fa.source || 'auto';
     if(_fsrc==='gemini'){
       tmp.source='gemini';
-      tmp.endpoints = Object.assign({}, s.endpoints, { gemini: { url: fa.url, key: fa.key || '', model: fa.model || s.endpoints?.gemini?.model || '' } });
+      tmp.endpoints = Object.assign({}, s.endpoints, { gemini: { url: fa.url || s.endpoints?.gemini?.url || '', key: fa.key || s.endpoints?.gemini?.key || '', model: fa.model || s.endpoints?.gemini?.model || '' } });
     } else if(_fsrc==='claude'){
       tmp.source='claude';
-      tmp.endpoints = Object.assign({}, s.endpoints, { claude: { url: fa.url, key: fa.key || '', model: fa.model || s.endpoints?.claude?.model || '' } });
+      tmp.endpoints = Object.assign({}, s.endpoints, { claude: { url: fa.url || s.endpoints?.claude?.url || '', key: fa.key || s.endpoints?.claude?.key || '', model: fa.model || s.endpoints?.claude?.model || '' } });
     } else {
       tmp.source = 'openai';
-      tmp.endpoints = Object.assign({}, s.endpoints, { openai: { url: fa.url, key: fa.key || '', model: fa.model || s.endpoints?.openai?.model || '' } });
+      tmp.endpoints = Object.assign({}, s.endpoints, { openai: { url: fa.url || s.endpoints?.openai?.url || '', key: fa.key || s.endpoints?.openai?.key || '', model: fa.model || s.endpoints?.openai?.model || '' } });
     }
-    tmp.temperature = (typeof fa.temperature==='number') ? fa.temperature : (s.temperature||0.7);
+    tmp.temperature = (typeof optTemp==='number') ? optTemp : ((typeof fa.temperature==='number') ? fa.temperature : (s.temperature||0.7));
+  } else if (typeof optTemp === 'number') {
+    tmp.temperature = optTemp;
+  }
+  if (typeof cdAddLog === 'function') {
+    var _epNow = (tmp.endpoints && tmp.endpoints[tmp.source]) ? tmp.endpoints[tmp.source] : {};
+    cdAddLog('api_req', '[Diễn đàn·API] ' + (useForumApi ? ('Dùng API riêng (' + tmp.source + ' · ' + (_epNow.model || '?') + ')') : ('Dùng API chính (' + (tmp.source || '?') + ' · ' + (_epNow.model || '?') + ')')), { url: _epNow.url || '', model: _epNow.model || '' });
   }
   var res = await cdWithTimeout(cdApiComplete(messages, tmp), 180000, 'Tạo nội dung Diễn đàn Thế giới');
   return res && res.text ? res.text : '';
@@ -24741,10 +24767,10 @@ function cdLovePickPartner(){
 
 /* ============ Gọi AI (dùng lại API diễn đàn) ============ */
 function cdLoveApiMsg(systemText, userText, temp){
-  return cdWithTimeout(cdApiComplete([
+  return cdForumApiComplete([
     {role:'system', content:systemText},
     {role:'user', content:userText}
-  ], {temperature:(temp!==undefined?temp:0.9)}), 120000, 'Tạo duyên gặp').then(function(r){ return (r && typeof r==='object' && 'text' in r) ? r.text : r; });
+  ], (temp!==undefined?temp:0.9));
 }
 /* Hội thoại xem mắt: prompt cốt lõi */
 var CD_LOVE_CHAT_SYS = function(partner, isRoster, mode, distrust, love){
@@ -24839,10 +24865,10 @@ function cdMangaSplit(text, panelCount, style){
   var n = Math.max(2, Math.min(8, parseInt(panelCount,10)||4));
   var styleZh = ({comic:'Nét vẽ truyện tranh retro',anime:'Anime cel',ink:'Thủy mặc cổ phong',retro:'Truyện tranh retro thập niên 80',realistic:'Tả thực tô dày',manhwa:'Manhwa tinh tế duy mỹ'})[style]||'Truyện tranh';
   var usr = 'Phong cách: '+styleZh+'\nSố khung: '+n+' khung\nVăn bản:\n'+(String(text||'').slice(0,2000));
-  return cdWithTimeout(cdApiComplete([
+  return cdForumApiComplete([
     {role:'system', content:CD_MANGA_SPLIT_SYS},
     {role:'user', content:usr}
-  ], {temperature:0.7}), 180000, 'Phân cảnh Mạn Cảnh');
+  ], 0.7);
 }
 /* Phân tích JSON phân cảnh */
 function cdMangaParseSplit(txt){
@@ -24861,10 +24887,10 @@ function cdMangaParseSplit(txt){
 async function cdMangaToEnglish(text){
   var usr = 'Dịch đoạn mô tả hình ảnh/cốt truyện dưới đây thành prompt tạo ảnh tiếng Anh (giữ chi tiết hình ảnh, đừng dịch thành hội thoại, chỉ dịch mô tả hình ảnh):\n' + String(text||'').slice(0,1000);
   try{
-    var res = await cdWithTimeout(cdApiComplete([
+    var res = await cdForumApiComplete([
       {role:'system', content:'Bạn là người dịch prompt tạo ảnh, chỉ xuất mô tả hình ảnh tiếng Anh, không có chữ thừa.'},
       {role:'user', content:usr}
-    ], {temperature:0.6}), 120000, 'Dịch Mạn Cảnh');
+    ], 0.6);
     var t=String(res||'').trim();
     return t||String(text||'');
   }catch(e){ return String(text||''); }
